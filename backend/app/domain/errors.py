@@ -22,6 +22,8 @@ class ErrorCode(StrEnum):
     APPOINTMENT_NOT_COMPLETED = "APPOINTMENT_NOT_COMPLETED"
     PATIENT_ALREADY_EXISTS = "PATIENT_ALREADY_EXISTS"
     USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS"
+    DOCTOR_ALREADY_EXISTS = "DOCTOR_ALREADY_EXISTS"
+    SPECIALTY_ALREADY_EXISTS = "SPECIALTY_ALREADY_EXISTS"
     AVAILABILITY_OVERLAP = "AVAILABILITY_OVERLAP"
     AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS = "AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS"
     VISIT_NOTE_NOT_WRITABLE = "VISIT_NOTE_NOT_WRITABLE"
@@ -111,6 +113,14 @@ class PatientAlreadyExists(DomainError):
 
 class UserAlreadyExists(DomainError):
     code, status_code = ErrorCode.USER_ALREADY_EXISTS, 409
+
+
+class DoctorAlreadyExists(DomainError):
+    code, status_code = ErrorCode.DOCTOR_ALREADY_EXISTS, 409
+
+
+class SpecialtyAlreadyExists(DomainError):
+    code, status_code = ErrorCode.SPECIALTY_ALREADY_EXISTS, 409
 
 
 class AvailabilityOverlap(DomainError):

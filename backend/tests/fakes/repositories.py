@@ -40,3 +40,193 @@ class InMemoryAuditRepository:
         matching.sort(key=lambda e: e.created_at, reverse=True)
         start = (page - 1) * page_size
         return Page(items=matching[start : start + page_size], total=len(matching))
+
+
+# ---- M2 reference data ------------------------------------------------------------------------
+from datetime import datetime  # noqa: E402
+
+from app.domain.errors import (  # noqa: E402
+    DoctorAlreadyExists,
+    PatientAlreadyExists,
+    SpecialtyAlreadyExists,
+)
+from app.domain.models import (  # noqa: E402
+    AppointmentSpan,
+    Availability,
+    AvailabilityException,
+    ClinicSettings,
+    Doctor,
+    MedicalHistoryEntry,
+    Patient,
+    Specialty,
+)
+
+
+class InMemorySpecialtyRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, Specialty] = {}
+
+    def _name_taken(self, name: str, except_id: uuid.UUID | None = None) -> bool:
+        return any(
+            s.name.lower() == name.lower() and s.id != except_id for s in self.items.values()
+        )
+
+    def add(self, specialty: Specialty) -> None:
+        if self._name_taken(specialty.name):
+            raise SpecialtyAlreadyExists("A specialty with this name already exists")
+        self.items[specialty.id] = specialty
+
+    def get(self, specialty_id: uuid.UUID) -> Specialty | None:
+        return self.items.get(specialty_id)
+
+    def list(self) -> list[Specialty]:
+        return sorted(self.items.values(), key=lambda s: s.name.lower())
+
+    def update(self, specialty: Specialty) -> None:
+        if self._name_taken(specialty.name, specialty.id):
+            raise SpecialtyAlreadyExists("A specialty with this name already exists")
+        self.items[specialty.id] = specialty
+
+
+class InMemoryDoctorRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, Doctor] = {}
+
+    def add(self, doctor: Doctor) -> None:
+        if self.get_by_user_id(doctor.user_id) is not None:
+            raise DoctorAlreadyExists("This user already has a doctor profile")
+        self.items[doctor.id] = doctor
+
+    def get(self, doctor_id: uuid.UUID) -> Doctor | None:
+        return self.items.get(doctor_id)
+
+    def get_by_user_id(self, user_id: uuid.UUID) -> Doctor | None:
+        return next((d for d in self.items.values() if d.user_id == user_id), None)
+
+    def list(self, specialty_id: uuid.UUID | None) -> list[Doctor]:
+        matching = [d for d in self.items.values() if specialty_id in (None, d.specialty_id)]
+        return sorted(matching, key=lambda d: d.name.lower())
+
+    def update(self, doctor: Doctor) -> None:
+        self.items[doctor.id] = doctor
+
+
+class InMemoryPatientRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, Patient] = {}
+
+    def _identity_taken(self, patient: Patient) -> bool:
+        from app.domain.patient_identity import normalize_name
+
+        return any(
+            p.id != patient.id
+            and p.phone == patient.phone
+            and normalize_name(p.name) == normalize_name(patient.name)
+            for p in self.items.values()
+        )
+
+    def add(self, patient: Patient) -> None:
+        if self._identity_taken(patient):
+            raise PatientAlreadyExists("A patient with this name and phone already exists")
+        self.items[patient.id] = patient
+
+    def get(self, patient_id: uuid.UUID) -> Patient | None:
+        return self.items.get(patient_id)
+
+    def find(
+        self, phone: str | None, name_prefix: str | None, page: int, page_size: int
+    ) -> Page[Patient]:
+        from app.domain.patient_identity import normalize_name
+
+        matching = [
+            p
+            for p in self.items.values()
+            if (phone is None or p.phone == phone)
+            and (name_prefix is None or normalize_name(p.name).startswith(name_prefix))
+        ]
+        matching.sort(key=lambda p: normalize_name(p.name))
+        start = (page - 1) * page_size
+        return Page(items=matching[start : start + page_size], total=len(matching))
+
+    def update(self, patient: Patient) -> None:
+        if self._identity_taken(patient):
+            raise PatientAlreadyExists("A patient with this name and phone already exists")
+        self.items[patient.id] = patient
+
+
+class InMemoryMedicalHistoryRepository:
+    def __init__(self) -> None:
+        self.items: list[MedicalHistoryEntry] = []
+
+    def add(self, entry: MedicalHistoryEntry) -> None:
+        self.items.append(entry)
+
+    def get(self, entry_id: uuid.UUID) -> MedicalHistoryEntry | None:
+        return next((e for e in self.items if e.id == entry_id), None)
+
+    def list_for_patient(self, patient_id: uuid.UUID) -> list[MedicalHistoryEntry]:
+        return sorted(
+            (e for e in self.items if e.patient_id == patient_id), key=lambda e: e.recorded_at
+        )
+
+
+class InMemoryAvailabilityRepository:
+    def __init__(self) -> None:
+        self.rules: dict[uuid.UUID, Availability] = {}
+        self.exceptions: dict[uuid.UUID, AvailabilityException] = {}
+
+    def add_rule(self, rule: Availability) -> None:
+        self.rules[rule.id] = rule
+
+    def get_rule(self, rule_id: uuid.UUID) -> Availability | None:
+        return self.rules.get(rule_id)
+
+    def list_rules(self, doctor_id: uuid.UUID) -> list[Availability]:
+        found = [r for r in self.rules.values() if r.doctor_id == doctor_id]
+        return sorted(found, key=lambda r: (r.day_of_week.value, r.start_time))
+
+    def update_rule(self, rule: Availability) -> None:
+        self.rules[rule.id] = rule
+
+    def delete_rule(self, rule_id: uuid.UUID) -> None:
+        self.rules.pop(rule_id, None)
+
+    def add_exception(self, exception: AvailabilityException) -> None:
+        self.exceptions[exception.id] = exception
+
+    def get_exception(self, exception_id: uuid.UUID) -> AvailabilityException | None:
+        return self.exceptions.get(exception_id)
+
+    def list_exceptions(self, doctor_id: uuid.UUID) -> list[AvailabilityException]:
+        found = [e for e in self.exceptions.values() if e.doctor_id == doctor_id]
+        return sorted(found, key=lambda e: e.date)
+
+    def update_exception(self, exception: AvailabilityException) -> None:
+        self.exceptions[exception.id] = exception
+
+    def delete_exception(self, exception_id: uuid.UUID) -> None:
+        self.exceptions.pop(exception_id, None)
+
+
+class InMemoryClinicSettingsRepository:
+    def __init__(self) -> None:
+        self.settings = ClinicSettings(2.0, 1, 30, "UTC", None)
+
+    def get(self) -> ClinicSettings:
+        return ClinicSettings(**vars(self.settings))
+
+    def save(self, settings: ClinicSettings) -> None:
+        self.settings = ClinicSettings(**vars(settings))
+
+
+class FakeAppointmentQuery:
+    """Fake for the appointments table (arrives in M3): tests add spans per doctor."""
+
+    def __init__(self) -> None:
+        self.spans: dict[uuid.UUID, list[AppointmentSpan]] = {}
+
+    def add(self, doctor_id: uuid.UUID, start: datetime, end: datetime) -> None:
+        self.spans.setdefault(doctor_id, []).append(AppointmentSpan(start, end))
+
+    def upcoming_spans(self, doctor_id: uuid.UUID, after: datetime) -> list[AppointmentSpan]:
+        return [s for s in self.spans.get(doctor_id, []) if s.end_time > after]
