@@ -115,6 +115,28 @@ BOOKING_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] 
 ]
 MATRIX.extend(BOOKING_MATRIX)
 
+LIFECYCLE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
+    ("POST", f"/appointments/{ID}/check-in", None, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/start-consultation", None, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/complete", None, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/no-show", None, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/cancel", None, NOT_FOUND),
+    (
+        "POST",
+        f"/appointments/{ID}/force-cancel",
+        {"reason": "why"},
+        {"anonymous": 401, "doctor": 403, "front_desk": 404},  # role gate precedes the lookup
+    ),
+    (
+        "POST",
+        f"/appointments/{ID}/reschedule",
+        {"newStartTime": "2026-03-02T09:00:00Z"},
+        NOT_FOUND,
+    ),
+    ("POST", f"/appointments/{ID}/follow-up", {"startTime": "2026-03-09T09:00:00Z"}, NOT_FOUND),
+]
+MATRIX.extend(LIFECYCLE_MATRIX)
+
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)
 def test_route_permissions(

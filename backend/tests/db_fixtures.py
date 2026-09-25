@@ -16,10 +16,7 @@ def migrated_database() -> None:
     command.upgrade(Config("alembic.ini"), "head")
 
 
-@pytest.fixture(autouse=True)
-def clean_tables() -> Iterator[None]:
-    """Every test leaves the application tables empty."""
-    yield
+def _reset_tables() -> None:
     with get_engine().begin() as connection:
         connection.execute(
             text(
@@ -38,3 +35,15 @@ def clean_tables() -> Iterator[None]:
                 "default_triage_specialty_id = NULL"
             )
         )
+
+
+@pytest.fixture(autouse=True)
+def clean_tables() -> Iterator[None]:
+    """Every test starts and ends with empty application tables.
+
+    Cleaning first as well protects against leftovers from other runs sharing the database
+    (for example the Playwright e2e seed).
+    """
+    _reset_tables()
+    yield
+    _reset_tables()
