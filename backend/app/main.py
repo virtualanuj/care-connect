@@ -16,6 +16,7 @@ from app.api.routers import (
     doctors,
     health,
     patients,
+    queue,
     slots,
     specialties,
     users,
@@ -60,6 +61,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         patients.router,
         slots.router,
         appointments.router,
+        queue.router,
     )
     for router in routers:
         app.include_router(router, prefix=API_PREFIX)

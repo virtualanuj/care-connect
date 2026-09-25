@@ -135,6 +135,9 @@ class InMemoryPatientRepository:
     def get(self, patient_id: uuid.UUID) -> Patient | None:
         return self.items.get(patient_id)
 
+    def get_many(self, ids) -> dict[uuid.UUID, Patient]:  # type: ignore[no-untyped-def]
+        return {i: self.items[i] for i in ids if i in self.items}
+
     def find(
         self, phone: str | None, name_prefix: str | None, page: int, page_size: int
     ) -> Page[Patient]:

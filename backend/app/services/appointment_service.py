@@ -89,22 +89,56 @@ class AppointmentService:
             raise Forbidden("Doctors can only book appointments with themselves")
 
         slot = self._open_slot(doctor, start_time)
-        if slot.is_emergency:
-            # Full authorization (triage result or front-desk judgment) arrives in M5/M6.
-            if emergency_justification is None:
-                raise EmergencyJustificationRequired(
-                    "This slot is held for emergencies and needs a justification"
-                )
-            raise EmergencyNotAuthorized("Emergency booking is not available yet")
+        emergency = (
+            self._authorize_emergency(actor, emergency_justification, emergency_reason)
+            if slot.is_emergency
+            else None  # a justification sent for a regular slot is ignored
+        )
 
-        return self._create(
+        appointment = self._create(
             doctor,
             patient_id,
             slot,
             source=source,
             reported_symptoms=reported_symptoms,
             triage_result_id=triage_result_id,
+            emergency=emergency,
+            authorized_by=actor.id,
         )
+        if emergency is not None:
+            self._audit.record(
+                AuditAction.EMERGENCY_AUTHORIZATION,
+                actor.id,
+                "appointment",
+                appointment.id,
+                emergency[1] or emergency[0].value,
+            )
+        return appointment
+
+    @staticmethod
+    def _authorize_emergency(
+        actor: User,
+        justification: EmergencyJustification | None,
+        reason: str | None,
+    ) -> tuple[EmergencyJustification, str | None]:
+        """Decide whether the actor may draw on held-back emergency capacity.
+
+        Front-desk judgment needs a stated reason and a front-desk actor. Authorization by an AI
+        triage result arrives with the triage milestone (M6).
+        """
+        if justification is None:
+            raise EmergencyJustificationRequired(
+                "This slot is held for emergencies and needs a justification"
+            )
+        if justification == EmergencyJustification.FRONT_DESK_JUDGMENT:
+            if actor.role != Role.FRONT_DESK_ADMIN:
+                raise Forbidden("Only front-desk staff can authorize emergency capacity")
+            if reason is None or not reason.strip():
+                raise EmergencyJustificationRequired(
+                    "Front-desk judgment needs a reason for using emergency capacity"
+                )
+            return justification, reason.strip()
+        raise EmergencyNotAuthorized("The triage result does not authorize an emergency slot")
 
     def _open_slot(self, doctor: Doctor, start_time: datetime) -> Slot:
         """The currently open slot starting at `start_time`, or the reason there is none."""
@@ -142,6 +176,8 @@ class AppointmentService:
         reported_symptoms: str | None = None,
         triage_result_id: uuid.UUID | None = None,
         follow_up_of_id: uuid.UUID | None = None,
+        emergency: tuple[EmergencyJustification, str | None] | None = None,
+        authorized_by: uuid.UUID | None = None,
     ) -> Appointment:
         appointment = Appointment(
             id=self._new_id(),
@@ -151,11 +187,14 @@ class AppointmentService:
             end_time=slot.end_time,
             status=AppointmentStatus.BOOKED,
             source=source,
-            is_emergency_slot=False,
+            is_emergency_slot=emergency is not None,
             created_at=self._clock.now(),
             reported_symptoms=reported_symptoms,
             triage_result_id=triage_result_id,
             follow_up_of_id=follow_up_of_id,
+            emergency_justification=emergency[0] if emergency else None,
+            emergency_reason=emergency[1] if emergency else None,
+            emergency_authorized_by=authorized_by if emergency else None,
         )
         self._appointments.add(appointment)
         return appointment

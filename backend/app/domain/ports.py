@@ -1,6 +1,7 @@
 """Ports: interfaces the service layer depends on (implemented by adapters)."""
 
 import uuid
+from collections.abc import Collection
 from datetime import datetime
 from typing import Protocol
 
@@ -118,6 +119,10 @@ class PatientRepository(Protocol):
         ...
 
     def get(self, patient_id: uuid.UUID) -> Patient | None: ...
+
+    def get_many(self, ids: Collection[uuid.UUID]) -> dict[uuid.UUID, Patient]:
+        """Load several patients with one query."""
+        ...
 
     def find(
         self, phone: str | None, name_prefix: str | None, page: int, page_size: int

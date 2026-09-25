@@ -18,6 +18,7 @@ from app.domain.models import (
     Appointment,
     AppointmentSource,
     AppointmentStatus,
+    AuditAction,
     Availability,
     DayOfWeek,
     Doctor,
@@ -224,14 +225,74 @@ def test_the_held_back_last_slot_needs_an_emergency_justification(s: Setup) -> N
         s.book(start_time=at(9, 40))  # the last slot is held back (N = 1)
 
 
-def test_emergency_authorization_is_not_yet_available_so_a_justification_is_rejected(
+def test_front_desk_judgment_with_a_reason_books_the_held_slot_and_records_who_and_why(
     s: Setup,
 ) -> None:
-    with pytest.raises(EmergencyNotAuthorized):
+    appointment = s.book(
+        start_time=at(9, 40),
+        emergency_justification=EmergencyJustification.FRONT_DESK_JUDGMENT,
+        emergency_reason="chest pain, walked in",
+    )
+
+    assert appointment.is_emergency_slot is True
+    assert appointment.emergency_justification == EmergencyJustification.FRONT_DESK_JUDGMENT
+    assert appointment.emergency_reason == "chest pain, walked in"
+    assert appointment.emergency_authorized_by == s.admin.id
+    (entry,) = s.audit_repo.entries
+    assert entry.action == AuditAction.EMERGENCY_AUTHORIZATION
+    assert (entry.actor_id, entry.target_id, entry.reason) == (
+        s.admin.id,
+        appointment.id,
+        "chest pain, walked in",
+    )
+
+
+@pytest.mark.parametrize("reason", [None, "", "   "])
+def test_front_desk_judgment_needs_a_non_blank_reason(s: Setup, reason: str | None) -> None:
+    with pytest.raises(EmergencyJustificationRequired):
         s.book(
             start_time=at(9, 40),
             emergency_justification=EmergencyJustification.FRONT_DESK_JUDGMENT,
-            emergency_reason="chest pain",
+            emergency_reason=reason,
+        )
+
+    assert s.appointments.items == {}
+    assert s.audit_repo.entries == []
+
+
+def test_a_doctor_cannot_authorize_emergency_capacity_by_judgment(s: Setup) -> None:
+    with pytest.raises(Forbidden):
+        s.book(
+            actor=s.doc_user,
+            doctor=s.doctor,
+            start_time=at(9, 40),
+            emergency_justification=EmergencyJustification.FRONT_DESK_JUDGMENT,
+            emergency_reason="urgent",
+        )
+
+
+def test_a_triage_justification_is_not_accepted_until_triage_exists(s: Setup) -> None:
+    with pytest.raises(EmergencyNotAuthorized):
+        s.book(
+            start_time=at(9, 40),
+            emergency_justification=EmergencyJustification.TRIAGE,
+            triage_result_id=uuid.uuid4(),
+        )
+
+
+def test_an_emergency_booking_still_blocks_double_booking_of_that_slot(s: Setup) -> None:
+    s.book(
+        start_time=at(9, 40),
+        emergency_justification=EmergencyJustification.FRONT_DESK_JUDGMENT,
+        emergency_reason="first",
+    )
+
+    with pytest.raises(SlotAlreadyBooked):
+        s.book(
+            patient_id=s.kiran.id,
+            start_time=at(9, 40),
+            emergency_justification=EmergencyJustification.FRONT_DESK_JUDGMENT,
+            emergency_reason="second",
         )
 
 

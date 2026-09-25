@@ -26,6 +26,7 @@ from app.services.availability_service import AvailabilityService
 from app.services.clinic_settings_service import ClinicSettingsService
 from app.services.doctor_service import DoctorService
 from app.services.patient_service import PatientService
+from app.services.queue_service import QueueService
 from app.services.slot_service import SlotService
 from app.services.user_service import UserService
 
@@ -139,6 +140,18 @@ def get_appointment_service(
         PostgresClinicSettingsRepository(session),
         clock,
         audit,
+    )
+
+
+def get_queue_service(
+    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+) -> QueueService:
+    return QueueService(
+        PostgresAppointmentRepository(session),
+        PostgresPatientRepository(session),
+        PostgresDoctorRepository(session),
+        PostgresClinicSettingsRepository(session),
+        clock,
     )
 
 

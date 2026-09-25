@@ -136,6 +136,7 @@ LIFECYCLE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]
     ("POST", f"/appointments/{ID}/follow-up", {"startTime": "2026-03-09T09:00:00Z"}, NOT_FOUND),
 ]
 MATRIX.extend(LIFECYCLE_MATRIX)
+MATRIX.append(("GET", "/queue?date=2026-03-02", None, AUTHENTICATED_OK))
 
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)

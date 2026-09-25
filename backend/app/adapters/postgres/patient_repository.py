@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Collection
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -47,6 +48,12 @@ class PostgresPatientRepository:
     def get(self, patient_id: uuid.UUID) -> Patient | None:
         row = self._session.get(PatientRow, patient_id)
         return _to_domain(row) if row else None
+
+    def get_many(self, ids: Collection[uuid.UUID]) -> dict[uuid.UUID, Patient]:
+        if not ids:
+            return {}
+        rows = self._session.scalars(select(PatientRow).where(PatientRow.id.in_(list(ids))))
+        return {row.id: _to_domain(row) for row in rows}
 
     def find(
         self, phone: str | None, name_prefix: str | None, page: int, page_size: int

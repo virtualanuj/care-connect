@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import AwareDatetime, Field
 
@@ -9,8 +9,10 @@ from app.domain.models import (
     AppointmentSource,
     AppointmentStatus,
     CancellationType,
+    DailyQueue,
     EmergencyJustification,
     Page,
+    QueueItem,
     Slot,
 )
 
@@ -126,6 +128,7 @@ class AppointmentPage(CamelModel):
 
 __all__ = [
     "AppointmentCreate",
+    "DailyQueueOut",
     "AppointmentOut",
     "AppointmentPage",
     "FollowUpRequest",
@@ -133,3 +136,40 @@ __all__ = [
     "RescheduleRequest",
     "SlotOut",
 ]
+
+
+class QueueItemOut(AppointmentOut):
+    patient_name: str
+    doctor_name: str
+
+
+class DailyQueueOut(CamelModel):
+    date: date
+    booked: list[QueueItemOut]
+    checked_in: list[QueueItemOut]
+    in_progress: list[QueueItemOut]
+    completed: list[QueueItemOut]
+    no_shows: list[QueueItemOut]
+    cancelled: list[QueueItemOut]
+
+    @classmethod
+    def from_domain(cls, queue: DailyQueue) -> "DailyQueueOut":
+        def items(rows: list[QueueItem]) -> list[QueueItemOut]:
+            return [
+                QueueItemOut(
+                    **AppointmentOut.from_domain(r.appointment).model_dump(),
+                    patient_name=r.patient_name,
+                    doctor_name=r.doctor_name,
+                )
+                for r in rows
+            ]
+
+        return cls(
+            date=queue.day,
+            booked=items(queue.booked),
+            checked_in=items(queue.checked_in),
+            in_progress=items(queue.in_progress),
+            completed=items(queue.completed),
+            no_shows=items(queue.no_shows),
+            cancelled=items(queue.cancelled),
+        )

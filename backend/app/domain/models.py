@@ -211,3 +211,23 @@ class Slot:
     start_time: datetime
     end_time: datetime
     is_emergency: bool
+
+
+@dataclass(frozen=True)
+class QueueItem:
+    appointment: Appointment
+    patient_name: str
+    doctor_name: str
+
+
+@dataclass(frozen=True)
+class DailyQueue:
+    """One clinic-local day's appointments in mutually exclusive status buckets."""
+
+    day: date
+    booked: list[QueueItem]
+    checked_in: list[QueueItem]
+    in_progress: list[QueueItem]
+    completed: list[QueueItem]
+    no_shows: list[QueueItem]
+    cancelled: list[QueueItem]
