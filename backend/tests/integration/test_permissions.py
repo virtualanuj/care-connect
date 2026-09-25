@@ -4,6 +4,8 @@ Extended by every milestone. The completeness test fails when a route is added
 without a row here.
 """
 
+import json
+import re
 import uuid
 
 import pytest
@@ -31,7 +33,7 @@ MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
     (
         "POST",
         "/users",
-        {"email": "n@clinic.test", "name": "N", "role": "doctor", "password": "long enough pass"},
+        {"email": "{role}@new.test", "name": "N", "role": "doctor", "password": "long enough pass"},
         {**FORBIDDEN_FOR_DOCTOR, "front_desk": 201},
     ),
     ("PATCH", f"/users/{ID}", {"name": "x"}, {**FORBIDDEN_FOR_DOCTOR, "front_desk": 404}),
@@ -43,6 +45,62 @@ MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
     ),
     ("GET", "/audit-log", None, {**FORBIDDEN_FOR_DOCTOR, "front_desk": 200}),
 ]
+
+
+FORBIDDEN_FOR_DOCTOR_404 = {"anonymous": 401, "doctor": 403, "front_desk": 404}
+# Unknown ids: authentication and role gates are checked before the resource lookup, so an
+# authorized role gets 404. Ownership rules (doctor edits only own data) are covered in
+# test_reference_api.py against real records.
+NOT_FOUND = {"anonymous": 401, "doctor": 404, "front_desk": 404}
+AUTHENTICATED_OK = {"anonymous": 401, "doctor": 200, "front_desk": 200}
+RULE = {"dayOfWeek": "monday", "startTime": "09:00", "endTime": "12:00"}
+EXCEPTION = {"date": "2026-03-09", "type": "unavailable"}
+REFERENCE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
+    ("GET", "/clinic-settings", None, AUTHENTICATED_OK),
+    (
+        "PATCH",
+        "/clinic-settings",
+        {"followUpMaxDays": 30},
+        {**FORBIDDEN_FOR_DOCTOR, "front_desk": 200},
+    ),
+    ("GET", "/specialties", None, AUTHENTICATED_OK),
+    (
+        "POST",
+        "/specialties",
+        {"name": "Spec {role}", "defaultSlotLengthMinutes": 20},
+        {**FORBIDDEN_FOR_DOCTOR, "front_desk": 201},
+    ),
+    ("PATCH", f"/specialties/{ID}", {"name": "x"}, FORBIDDEN_FOR_DOCTOR_404),
+    ("GET", "/doctors", None, AUTHENTICATED_OK),
+    (
+        "POST",
+        "/doctors",
+        {"userId": ID, "name": "x", "specialtyId": ID},
+        {**FORBIDDEN_FOR_DOCTOR, "front_desk": 400},
+    ),
+    ("GET", f"/doctors/{ID}", None, NOT_FOUND),
+    ("PATCH", f"/doctors/{ID}", {"name": "x"}, NOT_FOUND),
+    ("GET", f"/doctors/{ID}/availability", None, NOT_FOUND),
+    ("POST", f"/doctors/{ID}/availability", RULE, NOT_FOUND),
+    ("PATCH", f"/doctors/{ID}/availability/{ID}", {"endTime": "13:00"}, NOT_FOUND),
+    ("DELETE", f"/doctors/{ID}/availability/{ID}", None, NOT_FOUND),
+    ("GET", f"/doctors/{ID}/availability-exceptions", None, NOT_FOUND),
+    ("POST", f"/doctors/{ID}/availability-exceptions", EXCEPTION, NOT_FOUND),
+    ("PATCH", f"/doctors/{ID}/availability-exceptions/{ID}", {"endTime": "13:00"}, NOT_FOUND),
+    ("DELETE", f"/doctors/{ID}/availability-exceptions/{ID}", None, NOT_FOUND),
+    ("GET", "/patients", None, AUTHENTICATED_OK),
+    (
+        "POST",
+        "/patients",
+        {"name": "Patient {role}", "phone": "9876543210"},
+        {"anonymous": 401, "doctor": 201, "front_desk": 201},
+    ),
+    ("GET", f"/patients/{ID}", None, NOT_FOUND),
+    ("PATCH", f"/patients/{ID}", {"name": "x"}, NOT_FOUND),
+    ("GET", f"/patients/{ID}/medical-history", None, NOT_FOUND),
+    ("POST", f"/patients/{ID}/medical-history", {"description": "x"}, NOT_FOUND),
+]
+MATRIX.extend(REFERENCE_MATRIX)
 
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)
@@ -59,10 +117,8 @@ def test_route_permissions(
         "front_desk": harness.admin_headers(),
     }
     for role, status in expected.items():
-        # POST /users creates a row, so give every role its own email.
-        payload = body
-        if path == "/users" and method == "POST" and body is not None:
-            payload = {**body, "email": f"{role}@new.test"}
+        # Creating routes need unique values per role: "{role}" is substituted in the body.
+        payload = json.loads(json.dumps(body).replace("{role}", role)) if body else body
         response = harness.client.request(
             method, f"{API_PREFIX}{path}", json=payload, headers=headers_by_role[role]
         )
@@ -73,7 +129,7 @@ def test_every_registered_route_is_in_the_permission_matrix() -> None:
     documented = {(method, path) for method, path, _, _ in MATRIX}
     # FastAPI's generated schema lists every registered operation.
     registered = {
-        (method.upper(), path.removeprefix(API_PREFIX).replace("{user_id}", ID))
+        (method.upper(), re.sub(r"\{[a-z_]+\}", ID, path.removeprefix(API_PREFIX)))
         for path, operations in create_app().openapi()["paths"].items()
         for method in operations
     }

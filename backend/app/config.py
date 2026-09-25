@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_secret: str | None = None
     jwt_ttl_minutes: int = 30
     gemini_api_key: str | None = None
+    default_phone_region: str = "IN"
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
 

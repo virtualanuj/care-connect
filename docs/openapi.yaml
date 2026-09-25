@@ -1391,6 +1391,30 @@ components:
       example: "09:30"
       description: Wall-clock time in the clinic time zone (HH:MM).
 
+    # OpenAPI 3.0: `nullable` only works next to `type`, so nullable references need their own
+    # schema (a `nullable: true` sibling of `allOf: [$ref]` does not accept null).
+    NullableClockTime:
+      type: string
+      nullable: true
+      pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+      example: "09:30"
+      description: A ClockTime, or null.
+
+    NullableEmergencyJustification:
+      type: string
+      nullable: true
+      enum: [triage, front_desk_judgment, null]
+
+    NullableCancellationType:
+      type: string
+      nullable: true
+      enum: [standard, force, rescheduled, null]
+
+    NullableUrgency:
+      type: string
+      nullable: true
+      enum: [emergency, urgent, routine, null]
+
     Role:
       type: string
       enum: [doctor, front_desk_admin]
@@ -1534,11 +1558,9 @@ components:
         date: { type: string, format: date }
         type: { $ref: "#/components/schemas/AvailabilityExceptionType" }
         startTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
         endTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
 
     AvailabilityExceptionCreate:
       type: object
@@ -1547,11 +1569,9 @@ components:
         date: { type: string, format: date }
         type: { $ref: "#/components/schemas/AvailabilityExceptionType" }
         startTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
         endTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
 
     AvailabilityExceptionUpdate:
       type: object
@@ -1559,11 +1579,9 @@ components:
         date: { type: string, format: date }
         type: { $ref: "#/components/schemas/AvailabilityExceptionType" }
         startTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
         endTime:
-          allOf: [{ $ref: "#/components/schemas/ClockTime" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableClockTime"
 
     Patient:
       type: object
@@ -1689,8 +1707,7 @@ components:
         source: { $ref: "#/components/schemas/AppointmentSource" }
         isEmergencySlot: { type: boolean }
         emergencyJustification:
-          allOf: [{ $ref: "#/components/schemas/EmergencyJustification" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableEmergencyJustification"
         emergencyReason: { type: string, nullable: true }
         emergencyAuthorizedBy: { type: string, format: uuid, nullable: true }
         reportedSymptoms: { type: string, nullable: true }
@@ -1702,8 +1719,7 @@ components:
         cancelledAt: { type: string, format: date-time, nullable: true }
         cancelledBy: { type: string, format: uuid, nullable: true }
         cancellationType:
-          allOf: [{ $ref: "#/components/schemas/CancellationType" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableCancellationType"
         cancelReason: { type: string, nullable: true }
         rescheduledToId: { type: string, format: uuid, nullable: true }
 
@@ -1724,8 +1740,7 @@ components:
           nullable: true
           description: Triage result for this patient this booking relies on.
         emergencyJustification:
-          allOf: [{ $ref: "#/components/schemas/EmergencyJustification" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableEmergencyJustification"
           description: >
             Required when the chosen slot is held-back emergency capacity
             (spec.md §4); the server verifies it.
@@ -1784,8 +1799,7 @@ components:
         overriddenBy: { type: string, format: uuid, nullable: true }
         overriddenAt: { type: string, format: date-time, nullable: true }
         overriddenUrgency:
-          allOf: [{ $ref: "#/components/schemas/Urgency" }]
-          nullable: true
+          $ref: "#/components/schemas/NullableUrgency"
         overriddenSpecialtyId: { type: string, format: uuid, nullable: true }
         overrideReason: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
