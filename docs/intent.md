@@ -33,8 +33,8 @@ and visit documentation is entirely manual.
 - A configurable number of slots per doctor per day held back for
   emergencies, bookable only through an explicit emergency path.
 - Booking supports both a specific doctor and a specialty-wide search
-  (e.g. "any available cardiologist"), returning the first matching slot
-  across all doctors in that specialty.
+  (e.g. "any available cardiologist"), returning every matching slot
+  across all doctors in that specialty for front-desk to choose from.
 
 **Patients**
 - Patient registration with basic demographics and contact info.
@@ -57,7 +57,9 @@ and visit documentation is entirely manual.
   regular slot is available.
 
 **Visit documentation**
-- Doctors record visit notes tied to each appointment.
+- Doctors record visit notes tied to each appointment (front-desk may
+  also enter raw notes; only the appointment's doctor finalizes the
+  summary).
 - Follow-up appointments can be booked directly from a completed visit.
 
 **AI-native features**
@@ -92,7 +94,9 @@ and visit documentation is entirely manual.
   emergency holdback, follow-up window) is the highest-priority, TDD-covered
   part of the system.
 - No HIPAA-equivalent or other regulatory compliance requirement for
-  patient data storage in v1.
+  patient data storage in v1. This means no formal compliance program,
+  not no care: PII redaction before AI calls, PHI-free logs, and an audit
+  log for sensitive actions are still required (`docs/standards.md`).
 
 ## Out of scope
 
@@ -104,5 +108,7 @@ and visit documentation is entirely manual.
 
 ## Open questions
 
-- Exact default values for cancellation cutoff, emergency-slot count, and
-  follow-up window — proposed as configurable defaults, need clinic sign-off.
+- Default values for cancellation cutoff, emergency-slot count, and
+  follow-up window are seeded as configurable defaults (`docs/spec.md` §4);
+  the clinic still needs to sign off on the initial values, but the
+  system does not depend on them being final.
