@@ -5,18 +5,11 @@ import type { components } from '../../api/schema'
 
 export type ClinicSettings = components['schemas']['ClinicSettings']
 export type ClinicSettingsUpdate = components['schemas']['ClinicSettingsUpdate']
-export type SpecialtyItem = components['schemas']['Specialty']
 
 export const useClinicSettings = () =>
   useQuery({
     queryKey: ['clinic-settings'],
     queryFn: () => api.request<ClinicSettings>('GET', '/clinic-settings'),
-  })
-
-export const useSpecialties = () =>
-  useQuery({
-    queryKey: ['specialties'],
-    queryFn: () => api.request<SpecialtyItem[]>('GET', '/specialties'),
   })
 
 export function useUpdateClinicSettings() {

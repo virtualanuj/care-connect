@@ -3,13 +3,12 @@ import { useState, type FormEvent } from 'react'
 import { messageForError } from '../../api/errorMessages'
 import { useAuth } from '../../auth/useAuth'
 import { toForm, validate, type FormState } from './validation'
+import { useSpecialties, type SpecialtyItem } from '../../api/referenceHooks'
 import {
   useClinicSettings,
-  useSpecialties,
   useUpdateClinicSettings,
   type ClinicSettings,
   type ClinicSettingsUpdate,
-  type SpecialtyItem,
 } from './settingsApi'
 
 function timeZones(current: string): string[] {
