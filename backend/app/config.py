@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     jwt_secret: str | None = None
     jwt_ttl_minutes: int = 30
     gemini_api_key: str | None = None
+    seed_admin_email: str | None = None
+    seed_admin_password: str | None = None
 
     @model_validator(mode="after")
     def _require_jwt_secret_outside_dev(self) -> Self:
