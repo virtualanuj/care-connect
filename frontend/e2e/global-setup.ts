@@ -6,7 +6,16 @@ const RESET_SQL = [
   'from sqlalchemy import text',
   'from app.db.session import get_engine',
   'with get_engine().begin() as connection:',
-  "    connection.execute(text('TRUNCATE audit_log, users CASCADE'))",
+  '    connection.execute(text(',
+  "        'TRUNCATE audit_log, medical_history_entries, availability_exceptions, availability, '",
+  "        'doctors, patients, specialties, users CASCADE'",
+  '    ))',
+  '    # CASCADE also emptied clinic_settings (it references specialties): restore the default row.',
+  '    connection.execute(text(',
+  '        "INSERT INTO clinic_settings (id, cancellation_cutoff_hours, "',
+  '        "emergency_slots_per_doctor_per_day, follow_up_max_days, clinic_timezone) "',
+  '        "VALUES (1, 2, 1, 30, \'Asia/Kolkata\')"',
+  '    ))',
 ].join('\n')
 
 /** Reset the application tables and seed the front-desk admin before the run. */

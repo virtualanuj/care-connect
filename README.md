@@ -22,7 +22,8 @@ cp .env.example .env          # local settings; never commit secrets
 uv sync
 uv run alembic upgrade head
 # First front-desk admin (set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD in .env, >= 12 chars)
-uv run python -m app.db.seed
+uv run python -m app.db.seed  # with ENV=dev also adds sample data: General Medicine, a doctor
+#   (doctor@clinic.test / "dev doctor passphrase"), Mon-Fri 09:00-12:00 availability, sample patients
 uv run uvicorn app.main:app --reload   # http://localhost:8000/api/v1/health
 
 # Frontend (second terminal)
