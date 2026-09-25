@@ -32,6 +32,18 @@ npm ci
 npm run dev                   # http://localhost:5173 (proxies /api to :8000)
 ```
 
+## AI triage configuration
+
+Triage uses Gemini through one adapter (`backend/app/adapters/ai/`). Set `GEMINI_API_KEY` (and
+optionally `GEMINI_MODEL`) in `backend/.env`. Without a key the AI is reported as unavailable,
+but the deterministic red-flag safety rule still returns an emergency result.
+
+For local development or end-to-end tests without a key, set `ENV=dev` and
+`LLM_PROVIDER=fake` (deterministic, no network; a symptom containing `simulate-ai-outage` behaves
+like an outage) or `LLM_PROVIDER=fake-down` (always unavailable). These are rejected when
+`ENV` is not `dev`. The red-flag phrase list lives in `backend/app/domain/red_flags.py` and must be
+signed off by the clinical lead before release.
+
 ## Tests and checks
 
 ```bash
@@ -40,6 +52,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy
 uv run pytest tests/unit          # no network, no database
 uv run pytest tests/contract      # responses validated against docs/openapi.yaml
+                                  # (the live Gemini test runs only if GEMINI_API_KEY is set)
 uv run pytest tests/integration   # needs `docker compose up -d db`
 uv run pytest                     # everything
 

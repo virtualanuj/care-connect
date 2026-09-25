@@ -10,6 +10,8 @@ from app.domain.errors import AiServiceUnavailable
 from app.domain.models import PatientIdentifiers, TriageModelOutput, Urgency
 
 _URGENT_WORDS = ("fever", "vomiting", "infection", "severe")
+# Lets an end-to-end test simulate an AI outage on a running server without restarting it.
+OUTAGE_MARKER = "simulate-ai-outage"
 
 
 class DevLLMProvider:
@@ -26,7 +28,7 @@ class DevLLMProvider:
         specialties: Sequence[str],
         identifiers: PatientIdentifiers,
     ) -> TriageModelOutput:
-        if self._down:
+        if self._down or OUTAGE_MARKER in symptoms.lower():
             raise AiServiceUnavailable("The AI service is unavailable")
         urgent = any(word in symptoms.lower() for word in _URGENT_WORDS)
         return TriageModelOutput(Urgency.URGENT if urgent else Urgency.ROUTINE, specialties[0], 0.6)

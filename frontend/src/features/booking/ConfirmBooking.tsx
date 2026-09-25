@@ -4,6 +4,8 @@ import { ApiError } from '../../api/client'
 import { messageForError } from '../../api/errorMessages'
 import { formatDateTime } from '../../lib/time'
 import type { Patient } from '../patients/patientsApi'
+import TriagePanel from '../triage/TriagePanel'
+import type { TriageResult } from '../triage/triageApi'
 import { useBook, type Appointment, type Slot } from './bookingApi'
 
 interface Props {
@@ -33,15 +35,20 @@ export default function ConfirmBooking({
 }: Props) {
   const [symptoms, setSymptoms] = useState('')
   const [reason, setReason] = useState('')
+  const [triage, setTriage] = useState<TriageResult | null>(null)
+  const [authorization, setAuthorization] = useState<'judgment' | 'triage'>('judgment')
   const [error, setError] = useState<unknown>(null)
   const [clientError, setClientError] = useState<string | null>(null)
   const book = useBook()
+  // Triage can authorize emergency capacity only if its *effective* urgency is emergency.
+  const triageAuthorizes = triage?.effectiveUrgency === 'emergency'
+  const byTriage = slot.isEmergency && triageAuthorizes && authorization === 'triage'
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError(null)
     setClientError(null)
-    if (slot.isEmergency && !reason.trim()) {
+    if (slot.isEmergency && !byTriage && !reason.trim()) {
       setClientError('A reason is required to use emergency capacity.')
       return
     }
@@ -52,11 +59,14 @@ export default function ConfirmBooking({
         startTime: slot.startTime,
         ...(walkIn ? { source: 'walk_in' as const } : {}),
         ...(symptoms.trim() ? { reportedSymptoms: symptoms.trim() } : {}),
+        ...(triage ? { triageResultId: triage.id } : {}),
         ...(slot.isEmergency
-          ? {
-              emergencyJustification: 'front_desk_judgment' as const,
-              emergencyReason: reason.trim(),
-            }
+          ? byTriage
+            ? { emergencyJustification: 'triage' as const }
+            : {
+                emergencyJustification: 'front_desk_judgment' as const,
+                emergencyReason: reason.trim(),
+              }
           : {}),
       })
       onBooked(appointment)
@@ -80,6 +90,8 @@ export default function ConfirmBooking({
           {patient.name} ({patient.phone})
         </dd>
       </dl>
+      {/* Outside the booking form: the panel has its own forms and dialogs. */}
+      <TriagePanel patientId={patient.id} onCurrentChange={setTriage} timeZone={timeZone} />
       <form onSubmit={submit}>
         <label>
           Reported symptoms (optional)
@@ -87,14 +99,23 @@ export default function ConfirmBooking({
         </label>
         {slot.isEmergency && (
           <>
-            <p>
-              This slot is held for emergencies. Using it is recorded as authorized by front-desk
-              judgment.
-            </p>
+            <p>This slot is held for emergencies. Using it is recorded and audited.</p>
             <label>
-              Reason for using emergency capacity
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+              Authorization
+              <select
+                value={byTriage ? 'triage' : 'judgment'}
+                onChange={(e) => setAuthorization(e.target.value as 'judgment' | 'triage')}
+              >
+                <option value="judgment">Front-desk judgment</option>
+                {triageAuthorizes && <option value="triage">Emergency triage result</option>}
+              </select>
             </label>
+            {!byTriage && (
+              <label>
+                Reason for using emergency capacity
+                <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+              </label>
+            )}
           </>
         )}
         {clientError && <p role="alert">{clientError}</p>}

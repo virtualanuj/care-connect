@@ -83,6 +83,7 @@ function api(user: typeof ADMIN, extra: Handlers = {}) {
     }),
     'GET /api/v1/appointments/a1': () => ({ body: BOOKED }),
     'GET /api/v1/patients/p1': () => ({ body: ASHA }),
+    'GET /api/v1/patients/p1/triage': () => ({ body: [] }),
     ...extra,
   } satisfies Handlers
 }
@@ -259,5 +260,42 @@ describe('Booking flow', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES.INVALID_SLOT)
     expect(screen.getByRole('button', { name: 'Refresh slots' })).toBeInTheDocument()
+  })
+
+  it('attaches a triage result run during booking to the appointment', async () => {
+    const { calls } = open(
+      api(ADMIN, {
+        'POST /api/v1/patients/p1/triage': () => ({
+          status: 201,
+          body: {
+            id: 't1',
+            patientId: 'p1',
+            reportedSymptoms: 'cough',
+            urgency: 'routine',
+            effectiveUrgency: 'routine',
+            suggestedSpecialtyId: 's1',
+            confidenceScore: 0.8,
+            source: 'model',
+            disclaimer: 'AI suggestion only.',
+            createdAt: '2026-03-01T12:00:00Z',
+          },
+        }),
+        'POST /api/v1/appointments': () => ({ status: 201, body: BOOKED }),
+      }),
+    )
+    await pickSlotAndPatient()
+
+    await userEvent.type(await screen.findByLabelText('Symptoms for triage'), 'cough')
+    await userEvent.click(screen.getByRole('button', { name: 'Run triage' }))
+    expect(await screen.findByText('AI suggestion only.')).toBeInTheDocument()
+    // Running triage must not submit the booking form it sits next to.
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/api/v1/appointments')).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }))
+
+    await vi.waitFor(() =>
+      expect(calls.find((c) => c.path === '/api/v1/appointments')?.body).toMatchObject({
+        triageResultId: 't1',
+      }),
+    )
   })
 })

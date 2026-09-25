@@ -24,7 +24,13 @@ export default defineConfig({
       cwd: '../backend',
       url: `http://localhost:${API_PORT}/api/v1/health`,
       reuseExistingServer: !process.env.CI,
-      env: { ENV: 'dev', JWT_SECRET: 'e2e-secret-e2e-secret-e2e-secret-1234' },
+      env: {
+        ENV: 'dev',
+        JWT_SECRET: 'e2e-secret-e2e-secret-e2e-secret-1234',
+        // Deterministic AI stand-in (no network); a symptom containing 'simulate-ai-outage'
+        // makes it behave as if the AI were down.
+        LLM_PROVIDER: 'fake',
+      },
     },
     {
       command: `npm run dev -- --port ${WEB_PORT} --strictPort`,

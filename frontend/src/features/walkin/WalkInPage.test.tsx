@@ -76,6 +76,7 @@ function api(
     },
     'GET /api/v1/appointments/a1': () => ({ body: BOOKED }),
     'GET /api/v1/patients/p1': () => ({ body: ASHA }),
+    'GET /api/v1/patients/p1/triage': () => ({ body: [] }),
     ...extra,
   } satisfies Handlers
 }
@@ -218,5 +219,81 @@ describe('Walk-in registration', () => {
     open(api({}), DOCTOR)
 
     expect(await screen.findByRole('heading', { name: 'Not permitted' })).toBeInTheDocument()
+  })
+
+  const triageResult = (effectiveUrgency: string) => ({
+    id: 't9',
+    patientId: 'p1',
+    reportedSymptoms: 'collapsed',
+    urgency: effectiveUrgency,
+    effectiveUrgency,
+    suggestedSpecialtyId: 's1',
+    confidenceScore: 0.9,
+    source: 'model',
+    disclaimer: 'AI suggestion only.',
+    createdAt: '2026-03-01T12:00:00Z',
+  })
+
+  async function toEmergencyConfirm() {
+    await choosePatient()
+    await findSlotsFor('d1')
+    await userEvent.click(await screen.findByRole('button', { name: /09:40/ }))
+    await userEvent.type(await screen.findByLabelText('Symptoms for triage'), 'collapsed')
+    await userEvent.click(screen.getByRole('button', { name: 'Run triage' }))
+    await screen.findByText('AI suggestion only.')
+  }
+
+  it('offers authorization by an emergency triage result and sends it without a typed reason', async () => {
+    const { calls } = open(
+      api(
+        { doctor: [], specialty: [], emergency: [EVE_EMERGENCY] },
+        {
+          'POST /api/v1/patients/p1/triage': () => ({
+            status: 201,
+            body: triageResult('emergency'),
+          }),
+          'POST /api/v1/appointments': () => ({
+            status: 201,
+            body: { ...BOOKED, isEmergencySlot: true },
+          }),
+        },
+      ),
+    )
+
+    await toEmergencyConfirm()
+    await userEvent.selectOptions(screen.getByLabelText('Authorization'), 'triage')
+    expect(screen.queryByLabelText('Reason for using emergency capacity')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }))
+
+    await vi.waitFor(() =>
+      expect(calls.find((c) => c.path === '/api/v1/appointments')?.body).toEqual({
+        doctorId: 'd2',
+        patientId: 'p1',
+        startTime: '2026-03-02T04:10:00Z',
+        source: 'walk_in',
+        triageResultId: 't9',
+        emergencyJustification: 'triage',
+      }),
+    )
+  })
+
+  it('does not offer triage authorization unless the effective urgency is emergency', async () => {
+    open(
+      api(
+        { doctor: [], specialty: [], emergency: [EVE_EMERGENCY] },
+        {
+          'POST /api/v1/patients/p1/triage': () => ({ status: 201, body: triageResult('routine') }),
+        },
+      ),
+    )
+
+    await toEmergencyConfirm()
+
+    const authorization = screen.getByLabelText('Authorization')
+    const options = within(authorization)
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+    expect(options).toEqual(['Front-desk judgment'])
+    expect(screen.getByLabelText('Reason for using emergency capacity')).toBeInTheDocument()
   })
 })
