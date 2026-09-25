@@ -124,6 +124,7 @@ export interface paths {
                         "application/json": components["schemas"]["User"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
@@ -167,6 +168,7 @@ export interface paths {
                         "application/json": components["schemas"]["UserPage"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
             };
@@ -341,6 +343,7 @@ export interface paths {
                         "application/json": components["schemas"]["Doctor"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
@@ -413,6 +416,7 @@ export interface paths {
                         "application/json": components["schemas"]["Doctor"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -489,6 +493,7 @@ export interface paths {
                         "application/json": components["schemas"]["Availability"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -571,6 +576,7 @@ export interface paths {
                     };
                     content?: never;
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -647,6 +653,7 @@ export interface paths {
                         "application/json": components["schemas"]["AvailabilityException"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -726,6 +733,7 @@ export interface paths {
                     };
                     content?: never;
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -794,6 +802,7 @@ export interface paths {
                         "application/json": components["schemas"]["Specialty"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
@@ -995,6 +1004,7 @@ export interface paths {
                         "application/json": components["schemas"]["Patient"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -1070,6 +1080,7 @@ export interface paths {
                         "application/json": components["schemas"]["MedicalHistoryEntry"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -1274,6 +1285,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1378,6 +1390,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1477,6 +1490,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1521,6 +1535,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1565,6 +1580,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1612,6 +1628,7 @@ export interface paths {
                         "application/json": components["schemas"]["Appointment"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1710,6 +1727,7 @@ export interface paths {
                         "application/json": components["schemas"]["AITriageResult"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -1787,6 +1805,7 @@ export interface paths {
                         "application/json": components["schemas"]["AITriageResult"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1889,6 +1908,7 @@ export interface paths {
                         "application/json": components["schemas"]["PreVisitSummary"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1919,6 +1939,7 @@ export interface paths {
                         "application/json": components["schemas"]["PreVisitSummary"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -1961,6 +1982,7 @@ export interface paths {
                         "application/json": components["schemas"]["VisitNote"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -2045,6 +2067,7 @@ export interface paths {
                         "application/json": components["schemas"]["VisitNote"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -2182,6 +2205,7 @@ export interface paths {
                         "application/json": components["schemas"]["ClinicSettings"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
@@ -2256,6 +2280,7 @@ export interface paths {
                         "application/json": components["schemas"]["AuditLogPage"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
             };

@@ -16,7 +16,11 @@ info:
     404 not found, 409 state conflict, 422 policy/business-rule violation,
     429 rate limited, 500 unexpected server error (`INTERNAL_ERROR`, no
     details), 503 AI provider unavailable. Every error body is
-    `Error` with a `code` from `ErrorCode`.
+    `Error` with a `code` from `ErrorCode`. A submitted value the
+    database cannot store (for example an integer far out of range) is a
+    400; a request body larger than the server limit (default 1 MB) is
+    rejected with 413 and code `VALIDATION_ERROR`. Every response carries
+    an `X-Request-ID` header (echoed from the request when well-formed).
   version: 0.2.0
 servers:
   - url: /api/v1
@@ -104,6 +108,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   # --------------------------------------------------------------- Users
@@ -121,6 +126,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UserPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
     post:
@@ -210,6 +216,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Doctor" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [Doctors]
@@ -243,6 +250,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Doctor" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     patch:
@@ -287,6 +295,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Availability" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     post:
@@ -348,6 +357,7 @@ paths:
       responses:
         "204":
           description: Deleted
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -367,6 +377,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/AvailabilityException" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     post:
@@ -423,6 +434,7 @@ paths:
       responses:
         "204":
           description: Deleted
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -440,6 +452,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Specialty" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [Specialties]
@@ -549,6 +562,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Patient" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     patch:
@@ -588,6 +602,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/MedicalHistoryEntry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     post:
@@ -731,6 +746,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -790,6 +806,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -838,6 +855,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -855,6 +873,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -872,6 +891,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -890,6 +910,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -946,6 +967,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/AITriageResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
     post:
@@ -992,6 +1014,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AITriageResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1050,6 +1073,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PreVisitSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1066,6 +1090,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PreVisitSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1084,6 +1109,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/VisitNote" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1133,6 +1159,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/VisitNote" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1205,6 +1232,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ClinicSettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
     patch:
       tags: [ClinicSettings]
@@ -1243,6 +1271,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuditLogPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 

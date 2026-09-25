@@ -135,3 +135,25 @@ def test_the_access_log_is_one_json_line_per_request_without_query_strings(
     assert payload["requestId"] == response.headers["X-Request-ID"]
     assert isinstance(payload["durationMs"], int | float)
     assert "9876543210" not in json.dumps(payload)
+
+
+# ---- database rejections of out-of-range values ------------------------------------------------
+
+
+def test_a_database_data_error_is_a_400_not_a_500_and_leaks_nothing() -> None:
+    from sqlalchemy.exc import DataError
+
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    app = create_app(settings=settings)
+
+    @app.get("/boom")
+    def boom() -> None:
+        raise DataError(
+            "INSERT ... Zephyrina", {"name": "Zephyrina"}, Exception("bigint out of range")
+        )
+
+    response = TestClient(app, raise_server_exceptions=False).get("/boom")
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert "Zephyrina" not in response.text

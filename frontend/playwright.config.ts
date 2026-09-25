@@ -17,7 +17,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: E2E.baseURL, trace: 'retain-on-failure' },
+  use: { baseURL: E2E.baseURL, trace: 'retain-on-failure', actionTimeout: 10_000 },
   webServer: [
     {
       command: `uv run uvicorn app.main:app --port ${API_PORT}`,

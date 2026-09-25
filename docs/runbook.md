@@ -85,3 +85,20 @@ them no longer than the clinic's retention policy. Test a restore regularly.
   move the limiter to shared storage before scaling out.
 - Request size is limited by `Content-Length` (`MAX_REQUEST_BYTES`, default
   1 MB) and again by nginx (`client_max_body_size 1m`).
+
+## 7. Performance baseline
+
+Measured by `backend/tests/integration/test_performance.py` on a laptop-class
+machine against a busy clinic (50 doctors x 30 fully booked days = 13,500
+appointments, 2,000 patients), through the full HTTP stack, 25 samples each:
+
+| Endpoint | p50 | p95 | Budget |
+|---|---|---|---|
+| `GET /slots` (by specialty, 50 doctors) | 81 ms | 87 ms | 300 ms |
+| `GET /queue` (a full day) | 47 ms | 66 ms | 300 ms |
+| `GET /appointments` (by day, 50 rows) | 34 ms | 37 ms | 300 ms |
+| `GET /appointments` (by doctor) | 35 ms | 41 ms | 300 ms |
+
+The same test asserts with `EXPLAIN` that the hot appointment queries use
+`appointments_start_idx`, `appointments_doctor_start_idx` and
+`appointments_patient_start_idx` rather than scanning the table.
