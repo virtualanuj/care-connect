@@ -27,10 +27,14 @@ def clean_tables() -> Iterator[None]:
                 "availability, doctors, patients, specialties, users CASCADE"
             )
         )
+        # TRUNCATE ... CASCADE also empties clinic_settings (it references specialties).
         connection.execute(
             text(
-                "UPDATE clinic_settings SET cancellation_cutoff_hours = 2, "
-                "emergency_slots_per_doctor_per_day = 1, follow_up_max_days = 30, "
-                "clinic_timezone = 'UTC', default_triage_specialty_id = NULL"
+                "INSERT INTO clinic_settings (id, cancellation_cutoff_hours, "
+                "emergency_slots_per_doctor_per_day, follow_up_max_days, clinic_timezone) "
+                "VALUES (1, 2, 1, 30, 'UTC') ON CONFLICT (id) DO UPDATE SET "
+                "cancellation_cutoff_hours = 2, emergency_slots_per_doctor_per_day = 1, "
+                "follow_up_max_days = 30, clinic_timezone = 'UTC', "
+                "default_triage_specialty_id = NULL"
             )
         )
