@@ -5,7 +5,9 @@ from datetime import datetime
 from typing import Protocol
 
 from app.domain.models import (
+    Appointment,
     AppointmentSpan,
+    AppointmentStatus,
     AuditAction,
     AuditEntry,
     Availability,
@@ -170,5 +172,32 @@ class ClinicSettingsRepository(Protocol):
 
 class AppointmentQuery(Protocol):
     def upcoming_spans(self, doctor_id: uuid.UUID, after: datetime) -> list[AppointmentSpan]:
-        """Non-cancelled, non-no-show appointments of the doctor that end after `after`."""
+        """Slot-holding appointments of the doctor that end after `after`."""
+        ...
+
+    def spans_between(
+        self, doctor_id: uuid.UUID, start: datetime, end: datetime
+    ) -> list[AppointmentSpan]:
+        """Slot-holding appointments of the doctor overlapping [start, end)."""
+        ...
+
+
+class AppointmentRepository(AppointmentQuery, Protocol):
+    def add(self, appointment: Appointment) -> None:
+        """Insert. Raises `SlotAlreadyBooked` / `PatientAlreadyBooked` on an overlap."""
+        ...
+
+    def get(self, appointment_id: uuid.UUID) -> Appointment | None: ...
+
+    def list(
+        self,
+        doctor_id: uuid.UUID | None,
+        patient_id: uuid.UUID | None,
+        starts_from: datetime | None,
+        starts_before: datetime | None,
+        status: AppointmentStatus | None,
+        page: int,
+        page_size: int,
+    ) -> Page[Appointment]:
+        """Filter on start time in [starts_from, starts_before). Ordered by start time."""
         ...

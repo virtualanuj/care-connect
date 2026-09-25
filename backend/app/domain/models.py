@@ -144,3 +144,70 @@ class AppointmentSpan:
 
     start_time: datetime
     end_time: datetime
+
+
+class AppointmentStatus(StrEnum):
+    BOOKED = "booked"
+    CHECKED_IN = "checked_in"
+    IN_CONSULTATION = "in_consultation"
+    COMPLETED = "completed"
+    NO_SHOW = "no_show"
+    CANCELLED = "cancelled"
+
+    @property
+    def holds_slot(self) -> bool:
+        """Cancelled and no-show appointments release their slot; all others hold it."""
+        return self not in (AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW)
+
+
+class AppointmentSource(StrEnum):
+    SCHEDULED = "scheduled"
+    WALK_IN = "walk_in"
+
+
+class CancellationType(StrEnum):
+    STANDARD = "standard"
+    FORCE = "force"
+    RESCHEDULED = "rescheduled"
+
+
+class EmergencyJustification(StrEnum):
+    TRIAGE = "triage"
+    FRONT_DESK_JUDGMENT = "front_desk_judgment"
+
+
+@dataclass
+class Appointment:
+    id: uuid.UUID
+    doctor_id: uuid.UUID
+    patient_id: uuid.UUID
+    start_time: datetime
+    end_time: datetime
+    status: AppointmentStatus
+    source: AppointmentSource
+    is_emergency_slot: bool
+    created_at: datetime
+    emergency_justification: EmergencyJustification | None = None
+    emergency_reason: str | None = None
+    emergency_authorized_by: uuid.UUID | None = None
+    reported_symptoms: str | None = None
+    triage_result_id: uuid.UUID | None = None
+    follow_up_of_id: uuid.UUID | None = None
+    checked_in_at: datetime | None = None
+    completed_at: datetime | None = None
+    cancelled_at: datetime | None = None
+    cancelled_by: uuid.UUID | None = None
+    cancellation_type: CancellationType | None = None
+    cancel_reason: str | None = None
+    rescheduled_to_id: uuid.UUID | None = None
+
+
+@dataclass(frozen=True)
+class Slot:
+    """A bookable slot returned by search. `is_emergency` marks held-back emergency capacity."""
+
+    doctor_id: uuid.UUID
+    specialty_id: uuid.UUID
+    start_time: datetime
+    end_time: datetime
+    is_emergency: bool

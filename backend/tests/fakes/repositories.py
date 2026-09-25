@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 
 from app.domain.errors import UserAlreadyExists
@@ -230,3 +232,82 @@ class FakeAppointmentQuery:
 
     def upcoming_spans(self, doctor_id: uuid.UUID, after: datetime) -> list[AppointmentSpan]:
         return [s for s in self.spans.get(doctor_id, []) if s.end_time > after]
+
+    def spans_between(
+        self, doctor_id: uuid.UUID, start: datetime, end: datetime
+    ) -> list[AppointmentSpan]:
+        return [
+            s for s in self.spans.get(doctor_id, []) if s.start_time < end and start < s.end_time
+        ]
+
+
+# ---- M3 appointments --------------------------------------------------------------------------
+from app.domain.errors import PatientAlreadyBooked, SlotAlreadyBooked  # noqa: E402
+from app.domain.models import Appointment, AppointmentStatus  # noqa: E402
+
+
+class InMemoryAppointmentRepository:
+    """Emulates the database's overlap constraints so services can be tested without Postgres."""
+
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, Appointment] = {}
+
+    def _holding(self) -> list[Appointment]:
+        return [a for a in self.items.values() if a.status.holds_slot]
+
+    def add(self, appointment: Appointment) -> None:
+        if appointment.status.holds_slot:
+            for other in self._holding():
+                overlaps = (
+                    other.start_time < appointment.end_time
+                    and appointment.start_time < other.end_time
+                )
+                if overlaps and other.doctor_id == appointment.doctor_id:
+                    raise SlotAlreadyBooked("That time is already booked for this doctor")
+                if overlaps and other.patient_id == appointment.patient_id:
+                    raise PatientAlreadyBooked(
+                        "This patient already has an overlapping appointment"
+                    )
+        self.items[appointment.id] = appointment
+
+    def get(self, appointment_id: uuid.UUID) -> Appointment | None:
+        return self.items.get(appointment_id)
+
+    def list(
+        self,
+        doctor_id: uuid.UUID | None,
+        patient_id: uuid.UUID | None,
+        starts_from: datetime | None,
+        starts_before: datetime | None,
+        status: AppointmentStatus | None,
+        page: int,
+        page_size: int,
+    ) -> Page[Appointment]:
+        matching = [
+            a
+            for a in self.items.values()
+            if (doctor_id is None or a.doctor_id == doctor_id)
+            and (patient_id is None or a.patient_id == patient_id)
+            and (starts_from is None or a.start_time >= starts_from)
+            and (starts_before is None or a.start_time < starts_before)
+            and (status is None or a.status == status)
+        ]
+        matching.sort(key=lambda a: a.start_time)
+        start = (page - 1) * page_size
+        return Page(items=matching[start : start + page_size], total=len(matching))
+
+    def upcoming_spans(self, doctor_id: uuid.UUID, after: datetime) -> list[AppointmentSpan]:
+        return [
+            AppointmentSpan(a.start_time, a.end_time)
+            for a in self._holding()
+            if a.doctor_id == doctor_id and a.end_time > after
+        ]
+
+    def spans_between(
+        self, doctor_id: uuid.UUID, start: datetime, end: datetime
+    ) -> list[AppointmentSpan]:
+        return [
+            AppointmentSpan(a.start_time, a.end_time)
+            for a in self._holding()
+            if a.doctor_id == doctor_id and a.start_time < end and start < a.end_time
+        ]

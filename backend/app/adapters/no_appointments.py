@@ -9,3 +9,8 @@ class NoAppointments:
 
     def upcoming_spans(self, doctor_id: uuid.UUID, after: datetime) -> list[AppointmentSpan]:
         return []
+
+    def spans_between(
+        self, doctor_id: uuid.UUID, start: datetime, end: datetime
+    ) -> list[AppointmentSpan]:
+        return []
