@@ -1,19 +1,22 @@
 import { useState, type FormEvent } from 'react'
 
-import { formatDateTime } from '../../lib/time'
 import RegisterPatientDialog from '../patients/RegisterPatientDialog'
 import { usePatients, type Patient } from '../patients/patientsApi'
-import type { Slot } from './bookingApi'
 
 interface Props {
-  slot: Slot
-  doctorName: string
-  timeZone: string
-  onBack: () => void
+  /** One line describing what the patient is being chosen for. */
+  summary: string
+  backLabel?: string
+  onBack?: () => void
   onContinue: (patient: Patient) => void
 }
 
-export default function PatientPicker({ slot, doctorName, timeZone, onBack, onContinue }: Props) {
+export default function PatientPicker({
+  summary,
+  backLabel = 'Back to slots',
+  onBack,
+  onContinue,
+}: Props) {
   const [phone, setPhone] = useState('')
   const [applied, setApplied] = useState('')
   const [selected, setSelected] = useState<Patient | null>(null)
@@ -29,9 +32,7 @@ export default function PatientPicker({ slot, doctorName, timeZone, onBack, onCo
   return (
     <section>
       <h2>Choose patient</h2>
-      <p>
-        {doctorName} · {formatDateTime(slot.startTime, timeZone)}
-      </p>
+      <p>{summary}</p>
       <form onSubmit={search} className="search-form">
         <label>
           Patient phone
@@ -60,9 +61,11 @@ export default function PatientPicker({ slot, doctorName, timeZone, onBack, onCo
         </fieldset>
       )}
       <div className="dialog-actions">
-        <button type="button" onClick={onBack}>
-          Back to slots
-        </button>
+        {onBack && (
+          <button type="button" onClick={onBack}>
+            {backLabel}
+          </button>
+        )}
         <button type="button" onClick={() => setRegistering(true)}>
           Register new patient
         </button>

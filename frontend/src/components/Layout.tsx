@@ -13,6 +13,7 @@ export default function Layout() {
           <NavLink to="/" end>
             Home
           </NavLink>
+          <NavLink to="/queue">Queue</NavLink>
           <NavLink to="/appointments">Appointments</NavLink>
           <NavLink to="/patients">Patients</NavLink>
           <NavLink to="/doctors">Doctors</NavLink>

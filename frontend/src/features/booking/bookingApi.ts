@@ -12,6 +12,8 @@ export interface SlotQuery {
   doctorId: string
   specialtyId: string
   date: string
+  /** Also return held-back emergency slots (walk-in fallback only). */
+  includeEmergency?: boolean
 }
 
 export const useSlots = (query: SlotQuery | null) =>
@@ -24,6 +26,7 @@ export const useSlots = (query: SlotQuery | null) =>
           date: query!.date,
           doctorId: query!.mode === 'doctor' ? query!.doctorId : undefined,
           specialtyId: query!.mode === 'specialty' ? query!.specialtyId : undefined,
+          includeEmergency: query!.includeEmergency ? true : undefined,
         },
       }),
   })

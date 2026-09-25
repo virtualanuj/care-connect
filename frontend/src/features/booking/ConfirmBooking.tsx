@@ -14,6 +14,8 @@ interface Props {
   onBack: () => void
   onRefresh: () => void
   onBooked: (appointment: Appointment) => void
+  /** Register as a walk-in (source = walk_in). */
+  walkIn?: boolean
 }
 
 /** Errors after which the slot list is stale and should be refreshed. */
@@ -27,20 +29,35 @@ export default function ConfirmBooking({
   onBack,
   onRefresh,
   onBooked,
+  walkIn = false,
 }: Props) {
   const [symptoms, setSymptoms] = useState('')
+  const [reason, setReason] = useState('')
   const [error, setError] = useState<unknown>(null)
+  const [clientError, setClientError] = useState<string | null>(null)
   const book = useBook()
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError(null)
+    setClientError(null)
+    if (slot.isEmergency && !reason.trim()) {
+      setClientError('A reason is required to use emergency capacity.')
+      return
+    }
     try {
       const appointment = await book.mutateAsync({
         doctorId: slot.doctorId,
         patientId: patient.id,
         startTime: slot.startTime,
+        ...(walkIn ? { source: 'walk_in' as const } : {}),
         ...(symptoms.trim() ? { reportedSymptoms: symptoms.trim() } : {}),
+        ...(slot.isEmergency
+          ? {
+              emergencyJustification: 'front_desk_judgment' as const,
+              emergencyReason: reason.trim(),
+            }
+          : {}),
       })
       onBooked(appointment)
     } catch (caught) {
@@ -68,6 +85,19 @@ export default function ConfirmBooking({
           Reported symptoms (optional)
           <textarea value={symptoms} onChange={(e) => setSymptoms(e.target.value)} />
         </label>
+        {slot.isEmergency && (
+          <>
+            <p>
+              This slot is held for emergencies. Using it is recorded as authorized by front-desk
+              judgment.
+            </p>
+            <label>
+              Reason for using emergency capacity
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+            </label>
+          </>
+        )}
+        {clientError && <p role="alert">{clientError}</p>}
         {error !== null && <p role="alert">{messageForError(error)}</p>}
         <div className="dialog-actions">
           <button type="button" onClick={onBack}>

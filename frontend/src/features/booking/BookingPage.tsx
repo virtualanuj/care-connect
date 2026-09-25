@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { formatDateTime } from '../../lib/time'
 import { useClinicSettings } from '../settings/settingsApi'
 import type { Patient } from '../patients/patientsApi'
 import ConfirmBooking from './ConfirmBooking'
@@ -35,9 +36,7 @@ export default function BookingPage() {
       )}
       {step.name === 'patient' && (
         <PatientPicker
-          slot={step.slot}
-          doctorName={step.doctorName}
-          timeZone={timeZone}
+          summary={`${step.doctorName} · ${formatDateTime(step.slot.startTime, timeZone)}`}
           onBack={() => setStep({ name: 'slots' })}
           onContinue={(patient) =>
             setStep({ name: 'confirm', slot: step.slot, doctorName: step.doctorName, patient })

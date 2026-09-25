@@ -21,7 +21,7 @@ export function useAppointmentAction(id: string) {
       api.request<Appointment>('POST', `/appointments/${id}/${action}`, { body }),
     onSuccess: () =>
       Promise.all(
-        ['appointment', 'appointments', 'slots'].map((key) =>
+        ['appointment', 'appointments', 'slots', 'queue'].map((key) =>
           queryClient.invalidateQueries({ queryKey: [key] }),
         ),
       ),

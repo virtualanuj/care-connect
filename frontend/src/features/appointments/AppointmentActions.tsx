@@ -8,16 +8,10 @@ import { useAppointmentAction, type Action } from './actionsApi'
 import type { Appointment } from './appointmentsApi'
 import { CancelDialog, ForceCancelDialog } from './CancelDialogs'
 import FollowUpDialog from './FollowUpDialog'
+import { LIFECYCLE } from './lifecycle'
 import RescheduleDialog from './RescheduleDialog'
 
 type Dialog = 'cancel' | 'force' | 'reschedule' | 'follow-up' | null
-
-const LIFECYCLE: { action: Action; label: string; from: Appointment['status'][] }[] = [
-  { action: 'check-in', label: 'Check in', from: ['booked'] },
-  { action: 'start-consultation', label: 'Start consultation', from: ['checked_in'] },
-  { action: 'complete', label: 'Complete', from: ['in_consultation'] },
-  { action: 'no-show', label: 'No-show', from: ['booked', 'checked_in'] },
-]
 
 /** Status- and role-dependent actions. The server enforces every rule; this only hides. */
 export default function AppointmentActions({ appointment }: { appointment: Appointment }) {
