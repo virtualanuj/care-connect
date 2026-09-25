@@ -34,6 +34,12 @@ from app.services.user_service import UserService
 
 _bearer = HTTPBearer(auto_error=False)
 
+# One database transaction per request. `scope="function"` ends it (commit or rollback) right
+# after the endpoint returns but BEFORE the response is sent, so a client that immediately
+# follows up (the UI opens the record it just created) always sees committed data. Every use
+# must share this one declaration so a request gets exactly one session.
+SESSION = Depends(get_session, scope="function")
+
 
 def get_clock(request: Request) -> Clock:
     clock: Clock = request.app.state.clock
@@ -41,14 +47,14 @@ def get_clock(request: Request) -> Clock:
 
 
 def get_audit_service(
-    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+    session: Session = SESSION, clock: Clock = Depends(get_clock)
 ) -> AuditService:
     return AuditService(PostgresAuditRepository(session), clock)
 
 
 def get_user_service(
     request: Request,
-    session: Session = Depends(get_session),
+    session: Session = SESSION,
     audit: AuditService = Depends(get_audit_service),
 ) -> UserService:
     return UserService(PostgresUserRepository(session), request.app.state.hasher, audit)
@@ -56,7 +62,7 @@ def get_user_service(
 
 def get_auth_service(
     request: Request,
-    session: Session = Depends(get_session),
+    session: Session = SESSION,
     clock: Clock = Depends(get_clock),
 ) -> AuthService:
     state = request.app.state
@@ -71,7 +77,7 @@ def get_auth_service(
 
 
 def get_clinic_settings_service(
-    session: Session = Depends(get_session), audit: AuditService = Depends(get_audit_service)
+    session: Session = SESSION, audit: AuditService = Depends(get_audit_service)
 ) -> ClinicSettingsService:
     return ClinicSettingsService(
         PostgresClinicSettingsRepository(session), PostgresSpecialtyRepository(session), audit
@@ -79,7 +85,7 @@ def get_clinic_settings_service(
 
 
 def get_doctor_service(
-    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+    session: Session = SESSION, clock: Clock = Depends(get_clock)
 ) -> DoctorService:
     return DoctorService(
         PostgresUserRepository(session),
@@ -91,7 +97,7 @@ def get_doctor_service(
 
 
 def get_availability_service(
-    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+    session: Session = SESSION, clock: Clock = Depends(get_clock)
 ) -> AvailabilityService:
     return AvailabilityService(
         PostgresDoctorRepository(session),
@@ -104,7 +110,7 @@ def get_availability_service(
 
 def get_patient_service(
     request: Request,
-    session: Session = Depends(get_session),
+    session: Session = SESSION,
     clock: Clock = Depends(get_clock),
 ) -> PatientService:
     return PatientService(
@@ -115,9 +121,7 @@ def get_patient_service(
     )
 
 
-def get_slot_service(
-    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
-) -> SlotService:
+def get_slot_service(session: Session = SESSION, clock: Clock = Depends(get_clock)) -> SlotService:
     return SlotService(
         PostgresSpecialtyRepository(session),
         PostgresDoctorRepository(session),
@@ -129,7 +133,7 @@ def get_slot_service(
 
 
 def get_appointment_service(
-    session: Session = Depends(get_session),
+    session: Session = SESSION,
     clock: Clock = Depends(get_clock),
     slots: SlotService = Depends(get_slot_service),
     audit: AuditService = Depends(get_audit_service),
@@ -147,7 +151,7 @@ def get_appointment_service(
 
 
 def get_queue_service(
-    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+    session: Session = SESSION, clock: Clock = Depends(get_clock)
 ) -> QueueService:
     return QueueService(
         PostgresAppointmentRepository(session),
@@ -160,7 +164,7 @@ def get_queue_service(
 
 def get_triage_service(
     request: Request,
-    session: Session = Depends(get_session),
+    session: Session = SESSION,
     clock: Clock = Depends(get_clock),
     audit: AuditService = Depends(get_audit_service),
 ) -> TriageService:
