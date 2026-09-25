@@ -18,7 +18,17 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.domain.models import AuditAction, DayOfWeek, ExceptionType, HistoryKind, Role
+from app.domain.models import (
+    AppointmentSource,
+    AppointmentStatus,
+    AuditAction,
+    CancellationType,
+    DayOfWeek,
+    EmergencyJustification,
+    ExceptionType,
+    HistoryKind,
+    Role,
+)
 
 
 def _enum(enum_class: type, name: str) -> Enum:
@@ -134,4 +144,47 @@ class ClinicSettingsRow(Base):
     clinic_timezone: Mapped[str] = mapped_column(Text)
     default_triage_specialty_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("specialties.id"), nullable=True
+    )
+
+
+class AppointmentRow(Base):
+    __tablename__ = "appointments"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    doctor_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("doctors.id"))
+    patient_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("patients.id"))
+    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[AppointmentStatus] = mapped_column(
+        _enum(AppointmentStatus, "appointment_status")
+    )
+    source: Mapped[AppointmentSource] = mapped_column(
+        _enum(AppointmentSource, "appointment_source")
+    )
+    is_emergency_slot: Mapped[bool] = mapped_column(Boolean)
+    emergency_justification: Mapped[EmergencyJustification | None] = mapped_column(
+        _enum(EmergencyJustification, "emergency_justification"), nullable=True
+    )
+    emergency_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    emergency_authorized_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id"), nullable=True
+    )
+    reported_symptoms: Mapped[str | None] = mapped_column(Text, nullable=True)
+    triage_result_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    follow_up_of_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("appointments.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    checked_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id"), nullable=True
+    )
+    cancellation_type: Mapped[CancellationType | None] = mapped_column(
+        _enum(CancellationType, "cancellation_type"), nullable=True
+    )
+    cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rescheduled_to_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("appointments.id"), nullable=True
     )
