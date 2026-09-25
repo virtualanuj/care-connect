@@ -34,6 +34,14 @@ npm ci
 npm run dev                   # http://localhost:5173 (proxies /api to :8000)
 ```
 
+## Local accounts
+
+`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` create the front-desk admin (only if that user does not
+exist yet). With `ENV=dev`, the seed also adds `doctor@clinic.test` (`dev doctor passphrase`); `--demo`
+adds `demo.doctor1..6@clinic.test` with the same passphrase. `npm run e2e` wipes the local users and
+re-creates the admin as `admin@clinic.test` / `e2e admin passphrase`, so re-run the seed afterwards.
+Too many failed logins are rate-limited (in memory); restart the API to clear it.
+
 ## AI triage configuration
 
 Triage uses Gemini through one adapter (`backend/app/adapters/ai/`). Set `GEMINI_API_KEY` (and
@@ -76,16 +84,18 @@ npm run e2e                       # Playwright; starts API on :8100 and web on :
 ## Layout
 
 ```
-docs/                 intent, spec, openapi.yaml (source of truth), standards, review, plan
+docs/                 intent, spec, openapi.yaml (source of truth), standards, review, plan,
+                      runbook, release-checklist
 backend/app/          api (routers, schemas, errors) -> services -> domain ports -> adapters
 backend/alembic/      database migrations
 backend/tests/        unit, integration, contract, fakes
 frontend/src/         api client (generated types), components, routes, features
-docker-compose.yml    local PostgreSQL
+                      (Tailwind v4 styling in `src/index.css`)
+docker-compose.yml    local PostgreSQL; `--profile prod` adds the api + web containers
 ```
 
 ## Working agreement
 
 Work directly on `main` in Conventional Commits that name the plan task
-(e.g. `feat(M3-B6): ...`); tag `main` `m<N>-complete` when a milestone's proof
-passes. See `docs/standards.md` and `docs/plan.md` §3.1.
+(e.g. `feat(M3-B6): ...`); tag `main` `M<N>-<Name>` (e.g. `M7-Visit-notes-and-summaries`) and
+push when a milestone's proof passes. See `docs/standards.md` and `docs/plan.md` §3.1.

@@ -4,17 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-CareConnect is currently **docs-only** — there is no application code, no
-`pyproject.toml`, and no frontend yet. Everything in this repo so far is
-in `docs/`. Before writing implementation code, check whether it's
-expected to land in this repo directly or whether the user wants a
-separate planning/spec pass first (see docs below).
+CareConnect is **implemented**: milestones M0–M8 in `docs/plan.md` are
+complete and tagged (`M0-Foundation` … `M8-Hardening`). Stack: FastAPI
+(Python 3.12, dependency-managed via `uv` — never pip/poetry/conda) +
+PostgreSQL 16 + React 19/TypeScript/Vite styled with Tailwind v4. Layout:
+`backend/` (app, alembic, tests), `frontend/` (src, e2e), `docs/`.
+Setup, run and test commands are in `README.md`; operations in
+`docs/runbook.md`; open release sign-offs in `docs/release-checklist.md`.
 
-Because there is no code yet, there are no build/lint/test commands to
-run. Once implementation starts, the intended stack is FastAPI (Python,
-dependency-managed via `uv` — never pip/poetry/conda) + PostgreSQL +
-React, per `docs/spec.md` §7. Work is sequenced as full-stack milestones
-(M0–M8) in `docs/plan.md`.
+Checks before any change is done: backend `uv run ruff check . && uv run
+ruff format --check . && uv run mypy && uv run pytest` (integration needs
+`docker compose up -d db`); frontend `npm run lint && npm run typecheck &&
+npm test && npm run build`, and `npm run gen:api` must leave
+`src/api/schema.d.ts` unchanged. `npm run e2e` resets the local database.
 
 ## Documentation hierarchy — read in this order
 
@@ -46,10 +48,11 @@ Each doc has a distinct authority; don't duplicate one into another.
 For now, work directly on `main` — no branches or PRs. Each plan task is
 one or more Conventional Commits with the task id in the subject (e.g.
 `feat(M3-B6): ...`). After a milestone (M0–M8 in `docs/plan.md`) is
-complete and its milestone proof passes, tag `main` `m<N>-complete`. Full
-rules: `docs/standards.md` → Commits and milestone tags; steps in
-`docs/plan.md` §3.1. Create commits and tags only when the user asks;
-never push unless told to.
+complete and its milestone proof passes, tag `main` `M<N>-<Name>` (e.g.
+`M7-Visit-notes-and-summaries`) and push `main` plus the tag. Full rules:
+`docs/standards.md` → Commits and milestone tags; steps in `docs/plan.md`
+§3.1. Create commits and tags only when the user asks (or as part of a
+milestone release the user has asked for); never push otherwise.
 
 ## Architecture (from docs/spec.md §7)
 

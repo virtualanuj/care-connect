@@ -21,7 +21,7 @@ Applies to every change (commit or group of commits, and the milestone as a whol
 ## Before a milestone is tagged
 
 Review the milestone's commits against every pass above, CI must be green
-on `main`, and a Blocker finding must be fixed before the `m<N>-complete`
+on `main`, and a Blocker finding must be fixed before the `M<N>-<Name>`
 tag is created (see `docs/standards.md` → Commits and milestone tags).
 
 ## Severity

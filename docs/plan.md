@@ -13,6 +13,28 @@ requirement.
 
 ---
 
+## 0. Implementation status
+
+All milestones M0–M8 are implemented and tagged (`M0-Foundation` …
+`M8-Hardening`). Where the built system differs from the task text below,
+the code, `docs/openapi.yaml` and `docs/runbook.md` are authoritative:
+
+- The red-flag list is a versioned Python constant
+  (`backend/app/domain/red_flags.py`, `RED_FLAG_LIST_VERSION`), not
+  `red_flags.yaml`; it still needs clinical sign-off.
+- The walk-in tier fallback (M5) is computed in the frontend
+  (`chooseWalkInTier`) from the existing slot endpoint; no extra endpoint.
+- Frontend lint is `oxlint` + Prettier (not ESLint); styling is Tailwind.
+- M8 added: request ids and a PHI-free JSON access log, security headers,
+  CORS allowlist and body-size limit (`CORS_ALLOWED_ORIGINS`,
+  `MAX_REQUEST_BYTES`), a Schemathesis sweep of every operation, a
+  doctor-scoping test matrix, performance/query-plan tests, axe checks and a
+  full-journey e2e, Dockerfiles + `--profile prod` compose, `docs/runbook.md`,
+  `seed --demo`, the audit-log page, and the `security` CI job.
+- Open release items (human sign-offs) are in `docs/release-checklist.md`.
+
+---
+
 ## 1. Stack, repo layout, conventions
 
 ### 1.1 Stack
@@ -26,10 +48,10 @@ requirement.
 | Phone / time | `phonenumbers` (E.164), stdlib `zoneinfo` |
 | AI | `google-genai` (only inside `GeminiLLMProvider`) |
 | Backend tests | `pytest`, `httpx`, Postgres service for integration, `schemathesis` for contract |
-| Lint / types | `ruff` (lint + format), `mypy --strict` on `app/` |
-| Frontend | React 18 + TypeScript, Vite, React Router, TanStack Query, react-hook-form + zod, `openapi-typescript` (types from `docs/openapi.yaml`) |
+| Lint / types | `ruff` (lint + format), `mypy --strict` on `app/`; frontend `oxlint` + Prettier |
+| Frontend | React 19 + TypeScript, Vite, React Router, TanStack Query, Tailwind CSS v4 (styling), `openapi-typescript` (types from `docs/openapi.yaml`); plain controlled forms (no form library) |
 | Frontend tests | Vitest + Testing Library; Playwright for one e2e per milestone |
-| CI | GitHub Actions: `backend-unit`, `backend-integration`, `contract`, `frontend`, `e2e` |
+| CI | GitHub Actions: `backend-unit`, `backend-integration`, `contract`, `frontend`, `e2e`, `security` |
 
 ### 1.2 Repository layout
 
@@ -168,8 +190,8 @@ Work directly on `main` for now (no branches or PRs). Full rules:
    pushing; CI must pass on every pushed commit. Keep a single Alembic
    head.
 4. When every task in the milestone is done and its milestone proof passes
-   on `main`, tag `main` `m<N>-complete` (e.g. `m3-complete`) and push the
-   tag.
+   on `main`, tag `main` `M<N>-<Name>` (e.g. `M3-Slots-and-booking`) and push `main`
+   and the tag; check the CI run of that push before starting the next milestone.
 
 Task notation: **`Mx-By`** backend, **`Mx-Fy`** frontend, **`Mx-Ty`**
 infra/test. Size: S ≤ ½ day, M ≈ 1 day, L ≈ 2 days. "Depends" lists

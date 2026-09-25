@@ -22,8 +22,8 @@ process.
 - [ ] There is always a single Alembic migration head on `main`.
 - [ ] After the last task of a milestone lands and its milestone proof in
       `docs/plan.md` passes on `main`, `main` is tagged
-      `m<N>-complete` (e.g. `m3-complete`) — one tag per milestone,
-      M0–M8.
+      `M<N>-<Name>` (e.g. `M3-Slots-and-booking`) — one tag per milestone,
+      M0–M8 — and `main` plus the tag are pushed.
 
 ## Code structure and naming
 
