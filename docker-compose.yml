@@ -3,7 +3,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: careconnect
-      POSTGRES_PASSWORD: careconnect
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-careconnect}
       POSTGRES_DB: careconnect
     ports:
       - "5432:5432"
@@ -14,6 +14,32 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+
+  # Production-like stack: `docker compose --profile prod up --build` (see docs/runbook.md).
+  api:
+    profiles: [prod]
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENV: production
+      DATABASE_URL: postgresql+psycopg://careconnect:${POSTGRES_PASSWORD:-careconnect}@db:5432/careconnect
+      JWT_SECRET: ${JWT_SECRET:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+    restart: unless-stopped
+
+  web:
+    profiles: [prod]
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped
 
 volumes:
   dbdata:

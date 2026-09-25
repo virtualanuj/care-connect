@@ -1,6 +1,7 @@
 import secrets
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.adapters.ai.factory import build_llm_provider
 from app.adapters.argon2_hasher import Argon2PasswordHasher
@@ -8,6 +9,7 @@ from app.adapters.clock import SystemClock
 from app.adapters.jwt_codec import JwtTokenCodec
 from app.adapters.rate_limiter import InMemoryRateLimiter
 from app.api.errors import register_error_handlers
+from app.api.http_hardening import configure_logging, install_http_hardening
 from app.api.routers import (
     appointments,
     audit,
@@ -57,6 +59,15 @@ def create_app(
     )
 
     register_error_handlers(app)
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        )
+    install_http_hardening(app, settings.max_request_bytes)  # outermost: covers CORS replies
+    configure_logging()
     routers = (
         health.router,
         auth.router,

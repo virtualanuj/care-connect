@@ -19,6 +19,7 @@ export default function Layout() {
           <NavLink to="/doctors">Doctors</NavLink>
           <NavLink to="/settings">Settings</NavLink>
           {user?.role === 'front_desk_admin' && <NavLink to="/users">Users</NavLink>}
+          {user?.role === 'front_desk_admin' && <NavLink to="/audit">Audit log</NavLink>}
         </nav>
         <div className="session">
           <span>{user?.name}</span>

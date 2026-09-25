@@ -24,6 +24,8 @@ uv run alembic upgrade head
 # First front-desk admin (set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD in .env, >= 12 chars)
 uv run python -m app.db.seed  # with ENV=dev also adds sample data: General Medicine, a doctor
 #   (doctor@clinic.test / "dev doctor passphrase"), Mon-Fri 09:00-12:00 availability, sample patients
+uv run python -m app.db.seed --demo   # (ENV=dev) a fuller demo clinic: 3 specialties, 6 doctors
+#   (demo.doctor1..6@clinic.test, same dev passphrase), 40 patients, today's queue in every status
 uv run uvicorn app.main:app --reload   # http://localhost:8000/api/v1/health
 
 # Frontend (second terminal)
@@ -43,6 +45,14 @@ For local development or end-to-end tests without a key, set `ENV=dev` and
 like an outage) or `LLM_PROVIDER=fake-down` (always unavailable). These are rejected when
 `ENV` is not `dev`. The red-flag phrase list lives in `backend/app/domain/red_flags.py` and must be
 signed off by the clinical lead before release.
+
+## Production-like stack
+
+`docker compose --profile prod up -d --build` runs the API (migrating on start) and the web
+container (nginx, same-origin `/api` proxy) next to Postgres. Environment, TLS, backup/restore and
+upgrade steps are in [`docs/runbook.md`](docs/runbook.md). Logs are one PHI-free JSON line per
+request with an `X-Request-ID`; `CORS_ALLOWED_ORIGINS` (exact origins, no `*`) and
+`MAX_REQUEST_BYTES` are the HTTP hardening settings.
 
 ## Tests and checks
 

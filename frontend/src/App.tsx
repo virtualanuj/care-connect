@@ -1,3 +1,4 @@
+import AuditLogPage from './features/audit/AuditLogPage'
 import { Route, Routes } from 'react-router-dom'
 
 import RequireAuth from './auth/RequireAuth'
@@ -37,6 +38,7 @@ export default function App() {
           <Route element={<RequireRole roles={['front_desk_admin']} />}>
             <Route path="walk-in" element={<WalkInPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="audit" element={<AuditLogPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>

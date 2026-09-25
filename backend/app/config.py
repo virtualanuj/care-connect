@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # "fake" / "fake-down" are development stand-ins (deterministic, no network); dev only.
     llm_provider: Literal["gemini", "fake", "fake-down"] = "gemini"
     default_phone_region: str = "IN"
+    # Comma-separated exact origins allowed to call the API from a browser; empty = none.
+    cors_allowed_origins: str = ""
+    max_request_bytes: int = 1_000_000
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
 
@@ -29,6 +32,16 @@ class Settings(BaseSettings):
         if self.env != "dev" and self.llm_provider != "gemini":
             raise ValueError("LLM_PROVIDER fake modes are only allowed when ENV=dev")
         return self
+
+    @model_validator(mode="after")
+    def _no_wildcard_cors(self) -> Self:
+        if "*" in self.cors_origins:
+            raise ValueError("CORS_ALLOWED_ORIGINS must list exact origins, not '*'")
+        return self
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
 
     @model_validator(mode="after")
     def _require_jwt_secret_outside_dev(self) -> Self:
