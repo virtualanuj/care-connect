@@ -26,6 +26,11 @@ _HTTP_MESSAGES = {
 }
 
 
+def _field(loc: tuple[int | str, ...]) -> str:
+    """Dotted field path without the leading source ('body', 'query', ...)."""
+    return ".".join(str(part) for part in loc[1:]) or str(loc[0])
+
+
 def _body(status: int, code: ErrorCode, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"code": code.value, "message": message})
 
@@ -38,12 +43,7 @@ async def _domain_error(_: Request, exc: Exception) -> JSONResponse:
 async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)
     # Report only field locations and rule names, never submitted values (may be PHI).
-    problems = sorted(
-        {
-            f"{'.'.join(str(p) for p in e['loc'][1:]) or e['loc'][0]}: {e['type']}"
-            for e in exc.errors()
-        }
-    )
+    problems = sorted({f"{_field(e['loc'])}: {e['type']}" for e in exc.errors()})
     return _body(400, ErrorCode.VALIDATION_ERROR, "Invalid request: " + "; ".join(problems))
 
 
