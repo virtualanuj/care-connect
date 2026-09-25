@@ -13,7 +13,7 @@
     "format": "prettier --write src",
     "format:check": "prettier --check src",
     "typecheck": "tsc -b --noEmit",
-    "gen:api": "openapi-typescript ../docs/openapi.yaml -o src/api/schema.d.ts",
+    "gen:api": "openapi-typescript ../docs/openapi.yaml -o src/api/schema.d.ts --default-non-nullable false",
     "e2e": "playwright test"
   },
   "dependencies": {

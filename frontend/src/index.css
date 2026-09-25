@@ -108,3 +108,25 @@ td {
   border-radius: 0.5rem;
   min-width: 20rem;
 }
+.search-form {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+.history {
+  list-style: none;
+  padding: 0;
+}
+.history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e3e6ea;
+}
+.window {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-right: 1rem;
+}

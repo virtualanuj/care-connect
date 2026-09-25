@@ -2470,7 +2470,7 @@ export interface components {
         };
         MedicalHistoryEntryCreate: {
             /** @default entry */
-            kind: components["schemas"]["MedicalHistoryKind"];
+            kind?: components["schemas"]["MedicalHistoryKind"];
             /**
              * Format: uuid
              * @description Required when kind is `amendment`.
@@ -2544,7 +2544,7 @@ export interface components {
             /** Format: date-time */
             startTime: string;
             /** @default scheduled */
-            source: components["schemas"]["AppointmentSource"];
+            source?: components["schemas"]["AppointmentSource"];
             reportedSymptoms?: string | null;
             /**
              * Format: uuid

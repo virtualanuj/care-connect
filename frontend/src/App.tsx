@@ -3,6 +3,8 @@ import { Route, Routes } from 'react-router-dom'
 import RequireAuth from './auth/RequireAuth'
 import RequireRole from './auth/RequireRole'
 import Layout from './components/Layout'
+import PatientDetailPage from './features/patients/PatientDetailPage'
+import PatientsPage from './features/patients/PatientsPage'
 import SettingsPage from './features/settings/SettingsPage'
 import AvailabilityPage from './features/availability/AvailabilityPage'
 import DoctorsPage from './features/doctors/DoctorsPage'
@@ -18,6 +20,8 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
+          <Route path="patients" element={<PatientsPage />} />
+          <Route path="patients/:patientId" element={<PatientDetailPage />} />
           <Route path="doctors" element={<DoctorsPage />} />
           <Route path="doctors/:doctorId/availability" element={<AvailabilityPage />} />
           <Route path="settings" element={<SettingsPage />} />
