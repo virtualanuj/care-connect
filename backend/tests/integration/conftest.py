@@ -1,22 +1,4 @@
-from collections.abc import Iterator
+from tests.api_harness import harness
+from tests.db_fixtures import clean_tables, migrated_database
 
-import pytest
-from alembic.config import Config
-from sqlalchemy import text
-
-from alembic import command
-from app.db.session import get_engine
-
-
-@pytest.fixture(scope="session", autouse=True)
-def migrated_database() -> None:
-    """Bring the test database to the latest schema once per test session."""
-    command.upgrade(Config("alembic.ini"), "head")
-
-
-@pytest.fixture(autouse=True)
-def clean_tables() -> Iterator[None]:
-    """Every integration test starts with empty application tables."""
-    yield
-    with get_engine().begin() as connection:
-        connection.execute(text("TRUNCATE audit_log, users CASCADE"))
+__all__ = ["clean_tables", "harness", "migrated_database"]

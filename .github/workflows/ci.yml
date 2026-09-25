@@ -52,6 +52,19 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: careconnect
+          POSTGRES_PASSWORD: careconnect
+          POSTGRES_DB: careconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U careconnect -d careconnect"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://careconnect:careconnect@localhost:5432/careconnect
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

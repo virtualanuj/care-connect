@@ -18,6 +18,11 @@ def get_session_factory() -> sessionmaker[Session]:
 
 
 def get_session() -> Iterator[Session]:
-    """FastAPI dependency: one session per request."""
+    """FastAPI dependency: one transaction per request (commit on success, else roll back)."""
     with get_session_factory()() as session:
-        yield session
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
