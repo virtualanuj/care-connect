@@ -138,6 +138,19 @@ LIFECYCLE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]
 MATRIX.extend(LIFECYCLE_MATRIX)
 MATRIX.append(("GET", "/queue?date=2026-03-02", None, AUTHENTICATED_OK))
 
+TRIAGE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
+    ("POST", f"/patients/{ID}/triage", {"reportedSymptoms": "cough"}, NOT_FOUND),
+    ("GET", f"/patients/{ID}/triage", None, NOT_FOUND),
+    ("GET", f"/appointments/{ID}/triage", None, NOT_FOUND),
+    (
+        "PATCH",
+        f"/triage-results/{ID}/override",
+        {"overriddenUrgency": "routine", "overrideReason": "why"},
+        NOT_FOUND,
+    ),
+]
+MATRIX.extend(TRIAGE_MATRIX)
+
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)
 def test_route_permissions(

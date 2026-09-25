@@ -6,6 +6,7 @@ from app.domain.models import (
     AuditAction,
     PatientIdentifiers,
     Role,
+    Specialty,
     TriageModelOutput,
     TriageResult,
     TriageSource,
@@ -124,14 +125,15 @@ class TriageService:
         self._triage.add(result)
         return result
 
-    def _fallback_specialty_id(self, specialties: list) -> uuid.UUID:  # type: ignore[type-arg]
+    def _fallback_specialty_id(self, specialties: list[Specialty]) -> uuid.UUID:
         """Specialty for a red-flag result produced without the model."""
         configured = self._settings.get().default_triage_specialty_id
         if configured is not None and any(s.id == configured for s in specialties):
             return configured
         if not specialties:
             raise ValidationFailed("No specialties are configured")
-        return specialties[0].id  # the repository lists specialties by name
+        first: uuid.UUID = specialties[0].id  # the repository lists specialties by name
+        return first
 
     # ---- reading ----------------------------------------------------------------------------
 

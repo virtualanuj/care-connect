@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.postgres.appointment_repository import PostgresAppointmentRepository
 from app.adapters.postgres.patient_repository import PostgresPatientRepository
+from app.adapters.postgres.triage_repository import PostgresTriageRepository
 from app.db.session import get_session_factory
 from app.domain.errors import PatientAlreadyBooked, SlotAlreadyBooked
 from app.domain.models import (
@@ -18,6 +19,9 @@ from app.domain.models import (
     Doctor,
     EmergencyJustification,
     Patient,
+    TriageResult,
+    TriageSource,
+    Urgency,
 )
 from tests.integration.test_reference_repositories import make_doctor, make_patient
 
@@ -79,7 +83,19 @@ def test_every_field_round_trips(env: Env) -> None:
     full.emergency_justification = EmergencyJustification.FRONT_DESK_JUDGMENT
     full.emergency_reason = "chest pain"
     full.reported_symptoms = "cough"
-    full.triage_result_id = uuid.uuid4()
+    triage = TriageResult(
+        id=uuid.uuid4(),
+        patient_id=env.patients[0].id,
+        reported_symptoms="cough",
+        urgency=Urgency.URGENT,
+        suggested_specialty_id=env.specialty.id,
+        confidence_score=0.7,
+        source=TriageSource.MODEL,
+        disclaimer="d",
+        created_at=BASE,
+    )
+    PostgresTriageRepository(env.session).add(triage)
+    full.triage_result_id = triage.id
     full.checked_in_at = BASE
     full.cancellation_type = CancellationType.STANDARD
     full.cancel_reason = "moved"

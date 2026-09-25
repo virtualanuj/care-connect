@@ -14,6 +14,7 @@ from app.db.session import get_session_factory
 from app.domain.models import Role, User
 from app.main import create_app
 from tests.fakes.fixed_clock import FixedClock
+from tests.fakes.llm import FakeLLMProvider
 
 PASSWORD = "correct horse battery"
 
@@ -21,6 +22,7 @@ PASSWORD = "correct horse battery"
 class ApiHarness:
     app: FastAPI
     clock: FixedClock
+    llm: FakeLLMProvider
 
     def __init__(self, client: TestClient) -> None:
         self.client = client
@@ -66,10 +68,12 @@ BOOKING_NOW = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def booking_harness() -> Iterator[ApiHarness]:
-    """A harness whose server clock is fixed, so slot availability is deterministic."""
+    """A harness whose server clock is fixed and whose AI provider is a scripted fake."""
     clock = FixedClock(BOOKING_NOW)
-    app = create_app(clock=clock)
+    llm = FakeLLMProvider()
+    app = create_app(clock=clock, llm=llm)
     harness = ApiHarness(TestClient(app, raise_server_exceptions=False))
     harness.app = app
     harness.clock = clock
+    harness.llm = llm
     yield harness

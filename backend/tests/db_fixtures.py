@@ -20,7 +20,7 @@ def _reset_tables() -> None:
     with get_engine().begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE audit_log, appointments, medical_history_entries, availability_exceptions, "
+                "TRUNCATE audit_log, ai_triage_results, appointments, medical_history_entries, availability_exceptions, "
                 "availability, doctors, patients, specialties, users CASCADE"
             )
         )

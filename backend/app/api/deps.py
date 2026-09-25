@@ -14,6 +14,7 @@ from app.adapters.postgres.doctor_repository import PostgresDoctorRepository
 from app.adapters.postgres.history_repository import PostgresMedicalHistoryRepository
 from app.adapters.postgres.patient_repository import PostgresPatientRepository
 from app.adapters.postgres.specialty_repository import PostgresSpecialtyRepository
+from app.adapters.postgres.triage_repository import PostgresTriageRepository
 from app.adapters.postgres.user_repository import PostgresUserRepository
 from app.db.session import get_session
 from app.domain.errors import Forbidden, Unauthenticated
@@ -28,6 +29,7 @@ from app.services.doctor_service import DoctorService
 from app.services.patient_service import PatientService
 from app.services.queue_service import QueueService
 from app.services.slot_service import SlotService
+from app.services.triage_service import TriageService
 from app.services.user_service import UserService
 
 _bearer = HTTPBearer(auto_error=False)
@@ -140,6 +142,7 @@ def get_appointment_service(
         PostgresClinicSettingsRepository(session),
         clock,
         audit,
+        PostgresTriageRepository(session),
     )
 
 
@@ -151,6 +154,26 @@ def get_queue_service(
         PostgresPatientRepository(session),
         PostgresDoctorRepository(session),
         PostgresClinicSettingsRepository(session),
+        clock,
+    )
+
+
+def get_triage_service(
+    request: Request,
+    session: Session = Depends(get_session),
+    clock: Clock = Depends(get_clock),
+    audit: AuditService = Depends(get_audit_service),
+) -> TriageService:
+    return TriageService(
+        PostgresPatientRepository(session),
+        PostgresMedicalHistoryRepository(session),
+        PostgresSpecialtyRepository(session),
+        PostgresTriageRepository(session),
+        PostgresAppointmentRepository(session),
+        PostgresDoctorRepository(session),
+        PostgresClinicSettingsRepository(session),
+        request.app.state.llm,
+        audit,
         clock,
     )
 

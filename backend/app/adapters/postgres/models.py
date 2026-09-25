@@ -7,6 +7,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
@@ -28,6 +29,8 @@ from app.domain.models import (
     ExceptionType,
     HistoryKind,
     Role,
+    TriageSource,
+    Urgency,
 )
 
 
@@ -188,3 +191,30 @@ class AppointmentRow(Base):
     rescheduled_to_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("appointments.id"), nullable=True
     )
+
+
+class TriageResultRow(Base):
+    __tablename__ = "ai_triage_results"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    patient_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("patients.id"))
+    reported_symptoms: Mapped[str] = mapped_column(Text)
+    urgency: Mapped[Urgency] = mapped_column(_enum(Urgency, "urgency"))
+    suggested_specialty_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("specialties.id"))
+    confidence_score: Mapped[float] = mapped_column(Float)
+    source: Mapped[TriageSource] = mapped_column(_enum(TriageSource, "triage_source"))
+    model_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    disclaimer: Mapped[str] = mapped_column(Text)
+    overridden_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id"), nullable=True
+    )
+    overridden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    overridden_urgency: Mapped[Urgency | None] = mapped_column(
+        _enum(Urgency, "urgency"), nullable=True
+    )
+    overridden_specialty_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("specialties.id"), nullable=True
+    )
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

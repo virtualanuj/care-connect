@@ -2,6 +2,7 @@ import secrets
 
 from fastapi import FastAPI
 
+from app.adapters.ai.factory import build_llm_provider
 from app.adapters.argon2_hasher import Argon2PasswordHasher
 from app.adapters.clock import SystemClock
 from app.adapters.jwt_codec import JwtTokenCodec
@@ -19,17 +20,22 @@ from app.api.routers import (
     queue,
     slots,
     specialties,
+    triage,
     users,
 )
 from app.config import Settings, get_settings
-from app.domain.ports import Clock
+from app.domain.ports import Clock, LLMProvider
 
 API_PREFIX = "/api/v1"  # matches `servers` in docs/openapi.yaml
 LOGIN_MAX_FAILURES = 5
 LOGIN_WINDOW_MINUTES = 15
 
 
-def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    clock: Clock | None = None,
+    llm: LLMProvider | None = None,
+) -> FastAPI:
     from datetime import timedelta
 
     settings = settings or get_settings()
@@ -40,6 +46,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     )
     app.state.clock = clock
     app.state.hasher = Argon2PasswordHasher()
+    app.state.llm = llm or build_llm_provider(settings)
     # In dev without JWT_SECRET, use a per-process secret (tokens die on restart).
     app.state.tokens = JwtTokenCodec(settings.jwt_secret or secrets.token_urlsafe(48))
     app.state.default_phone_region = settings.default_phone_region
@@ -62,6 +69,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         slots.router,
         appointments.router,
         queue.router,
+        triage.router,
     )
     for router in routers:
         app.include_router(router, prefix=API_PREFIX)

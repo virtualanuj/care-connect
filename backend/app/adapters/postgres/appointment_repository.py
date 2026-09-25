@@ -103,6 +103,17 @@ class PostgresAppointmentRepository:
         row = self._session.get(AppointmentRow, appointment_id)
         return _to_domain(row) if row else None
 
+    def triage_used_by(self, triage_id: uuid.UUID, doctor_id: uuid.UUID) -> bool:
+        found = self._session.scalar(
+            select(func.count())
+            .select_from(AppointmentRow)
+            .where(
+                AppointmentRow.triage_result_id == triage_id,
+                AppointmentRow.doctor_id == doctor_id,
+            )
+        )
+        return bool(found)
+
     def update(self, appointment: Appointment) -> None:
         row = self._session.get(AppointmentRow, appointment.id)
         if row is None:
