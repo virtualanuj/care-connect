@@ -151,7 +151,8 @@ paths:
       summary: Update a user (role, name, active)
       description: >
         Front-desk only. Deactivation takes effect immediately (active is
-        checked on every request). Written to the audit log.
+        checked on every request). A user cannot deactivate or change the
+        role of their own account (400). Written to the audit log.
       requestBody:
         required: true
         content:

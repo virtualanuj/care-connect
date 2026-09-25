@@ -201,6 +201,9 @@ Checked-in → Cancelled
   system offers, in order: (1) other doctors in the same specialty with
   open regular slots (a choice list via specialty search), then (2)
   emergency-held capacity, only when authorized as above.
+- **User management safeguards**: a front-desk user cannot deactivate their
+  own account or change their own role (400 `VALIDATION_ERROR`), so the
+  clinic cannot lock itself out. Passwords must be at least 12 characters.
 - **Patient uniqueness**: registering or updating a patient to a
   `(phone, normalized name)` that already exists is rejected with 409
   `PATIENT_ALREADY_EXISTS`.
