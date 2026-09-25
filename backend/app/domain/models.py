@@ -231,3 +231,56 @@ class DailyQueue:
     completed: list[QueueItem]
     no_shows: list[QueueItem]
     cancelled: list[QueueItem]
+
+
+class Urgency(StrEnum):
+    EMERGENCY = "emergency"
+    URGENT = "urgent"
+    ROUTINE = "routine"
+
+
+class TriageSource(StrEnum):
+    MODEL = "model"
+    RED_FLAG = "red_flag"
+
+
+@dataclass(frozen=True)
+class PatientIdentifiers:
+    """Direct identifiers known about a patient; scrubbed from text before any AI call."""
+
+    name: str
+    phone: str | None = None
+    email: str | None = None
+    dob: date | None = None
+
+
+@dataclass(frozen=True)
+class TriageModelOutput:
+    urgency: Urgency
+    suggested_specialty: str
+    confidence: float
+
+
+@dataclass
+class TriageResult:
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    reported_symptoms: str
+    urgency: Urgency
+    suggested_specialty_id: uuid.UUID
+    confidence_score: float
+    source: TriageSource
+    disclaimer: str
+    created_at: datetime
+    model_version: str | None = None
+    prompt_version: str | None = None
+    overridden_by: uuid.UUID | None = None
+    overridden_at: datetime | None = None
+    overridden_urgency: Urgency | None = None
+    overridden_specialty_id: uuid.UUID | None = None
+    override_reason: str | None = None
+
+    @property
+    def effective_urgency(self) -> Urgency:
+        """The staff override if there is one (it always wins), otherwise the original."""
+        return self.overridden_urgency or self.urgency
