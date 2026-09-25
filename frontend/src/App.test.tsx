@@ -1,29 +1,23 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import App from './App'
+import { DOCTOR, renderApp } from './test/renderApp'
 
-function renderAt(path: string) {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <App />
-    </MemoryRouter>,
-  )
-}
+const signedInAs = (path: string) =>
+  renderApp({ 'GET /api/v1/auth/me': () => ({ body: DOCTOR }) }, { path, token: 't' })
 
 describe('App shell', () => {
-  it('renders the layout with a brand, navigation and the home page', () => {
-    renderAt('/')
+  it('renders the layout with a brand, navigation and the home page', async () => {
+    signedInAs('/')
 
+    expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument()
     expect(screen.getByText('CareConnect')).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Welcome' })).toBeInTheDocument()
   })
 
-  it('shows a not-found page for unknown routes', () => {
-    renderAt('/does-not-exist')
+  it('shows a not-found page for unknown routes', async () => {
+    signedInAs('/does-not-exist')
 
-    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
   })
 })

@@ -1,6 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { useAuth } from '../auth/useAuth'
+
 export default function Layout() {
+  const { user, logout } = useAuth()
+
   return (
     <div className="app">
       <header className="app-header">
@@ -9,8 +13,14 @@ export default function Layout() {
           <NavLink to="/" end>
             Home
           </NavLink>
-          {/* Role-aware entries are added per milestone (M1+). */}
+          {user?.role === 'front_desk_admin' && <NavLink to="/users">Users</NavLink>}
         </nav>
+        <div className="session">
+          <span>{user?.name}</span>
+          <button type="button" onClick={logout}>
+            Sign out
+          </button>
+        </div>
       </header>
       <main>
         <Outlet />

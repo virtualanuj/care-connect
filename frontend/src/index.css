@@ -45,3 +45,25 @@ main {
   color: #fff;
   border-radius: 0.5rem;
 }
+.session {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.login {
+  max-width: 22rem;
+  margin: 4rem auto;
+}
+.login form,
+.dialog form {
+  display: grid;
+  gap: 0.75rem;
+}
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+[role='alert'] {
+  color: #b3261e;
+}
