@@ -18,8 +18,9 @@ export interface PatientSearch {
   page: number
 }
 
-export const usePatients = (search: PatientSearch) =>
+export const usePatients = (search: PatientSearch, enabled = true) =>
   useQuery({
+    enabled,
     queryKey: ['patients', search],
     queryFn: () =>
       api.request<PatientPageData>('GET', '/patients', {

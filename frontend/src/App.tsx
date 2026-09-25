@@ -6,7 +6,10 @@ import Layout from './components/Layout'
 import PatientDetailPage from './features/patients/PatientDetailPage'
 import PatientsPage from './features/patients/PatientsPage'
 import SettingsPage from './features/settings/SettingsPage'
+import AppointmentDetailPage from './features/appointments/AppointmentDetailPage'
+import AppointmentsPage from './features/appointments/AppointmentsPage'
 import AvailabilityPage from './features/availability/AvailabilityPage'
+import BookingPage from './features/booking/BookingPage'
 import DoctorsPage from './features/doctors/DoctorsPage'
 import UsersPage from './features/users/UsersPage'
 import HomePage from './routes/HomePage'
@@ -20,6 +23,9 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
+          <Route path="book" element={<BookingPage />} />
+          <Route path="appointments" element={<AppointmentsPage />} />
+          <Route path="appointments/:appointmentId" element={<AppointmentDetailPage />} />
           <Route path="patients" element={<PatientsPage />} />
           <Route path="patients/:patientId" element={<PatientDetailPage />} />
           <Route path="doctors" element={<DoctorsPage />} />

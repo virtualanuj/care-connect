@@ -130,3 +130,12 @@ td {
   gap: 0.25rem;
   margin-right: 1rem;
 }
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+fieldset {
+  border: 1px solid #e3e6ea;
+  border-radius: 0.5rem;
+}

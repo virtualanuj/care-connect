@@ -1151,6 +1151,7 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
             };
         };
         put?: never;
@@ -1170,7 +1171,7 @@ export interface paths {
         };
         /**
          * List/query appointments
-         * @description A doctor sees only their own appointments.
+         * @description A doctor sees only their own appointments (403 if they filter by another doctor's id).
          */
         get: {
             parameters: {
@@ -1199,6 +1200,7 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
             };
         };
         put?: never;

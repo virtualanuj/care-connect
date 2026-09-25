@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom'
 
 import { messageForError } from '../../api/errorMessages'
 import Modal from '../../components/Modal'
-import { useRegisterPatient, type PatientCreate } from './patientsApi'
+import { useRegisterPatient, type Patient, type PatientCreate } from './patientsApi'
 
 export default function RegisterPatientDialog({
   initialPhone,
   onClose,
+  onRegistered,
 }: {
   initialPhone: string
   onClose: () => void
+  /** When given, called instead of navigating to the new patient's page. */
+  onRegistered?: (patient: Patient) => void
 }) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -32,7 +35,8 @@ export default function RegisterPatientDialog({
     try {
       const patient = await register.mutateAsync(body)
       onClose()
-      navigate(`/patients/${patient.id}`)
+      if (onRegistered) onRegistered(patient)
+      else navigate(`/patients/${patient.id}`)
     } catch (caught) {
       setError(messageForError(caught))
     }
