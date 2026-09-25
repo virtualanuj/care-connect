@@ -139,3 +139,9 @@ fieldset {
   border: 1px solid #e3e6ea;
   border-radius: 0.5rem;
 }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

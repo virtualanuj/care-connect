@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useDoctors } from '../../api/referenceHooks'
 import { formatDateTime } from '../../lib/time'
 import { useClinicSettings } from '../settings/settingsApi'
+import AppointmentActions from './AppointmentActions'
 import { STATUS_LABELS, useAppointment, usePatientNames } from './appointmentsApi'
 
 export default function AppointmentDetailPage() {
@@ -42,6 +43,7 @@ export default function AppointmentDetailPage() {
         <dt>Reported symptoms</dt>
         <dd>{a.reportedSymptoms ?? '—'}</dd>
       </dl>
+      <AppointmentActions appointment={a} />
     </section>
   )
 }

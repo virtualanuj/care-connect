@@ -51,7 +51,7 @@ test('front-desk books a slot for one of two patients sharing a phone', async ({
   await page.getByLabel('Reported symptoms (optional)').fill('cough')
   await page.getByRole('button', { name: 'Confirm booking' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Appointment' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Appointment', exact: true })).toBeVisible()
   await expect(page.getByText('cough')).toBeVisible()
   await expect(page.getByText('Booked', { exact: true })).toBeVisible()
 
@@ -85,7 +85,7 @@ test('a second front-desk user racing for the same slot gets the conflict messag
 
   await choosePatient(first, 'Meera Iyer', '91234 56789')
   await first.getByRole('button', { name: 'Confirm booking' }).click()
-  await expect(first.getByRole('heading', { name: 'Appointment' })).toBeVisible()
+  await expect(first.getByRole('heading', { name: 'Appointment', exact: true })).toBeVisible()
 
   await second.getByLabel('Patient phone').fill('98765 43210')
   await second.getByRole('button', { name: 'Find patient' }).click()
