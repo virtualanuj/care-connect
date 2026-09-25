@@ -13,7 +13,8 @@
     "format": "prettier --write src",
     "format:check": "prettier --check src",
     "typecheck": "tsc -b --noEmit",
-    "gen:api": "openapi-typescript ../docs/openapi.yaml -o src/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../docs/openapi.yaml -o src/api/schema.d.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.2",
@@ -22,6 +23,7 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

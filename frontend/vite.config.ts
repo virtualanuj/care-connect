@@ -4,11 +4,12 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   server: {
-    proxy: { '/api': 'http://localhost:8000' },
+    proxy: { '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8000' },
   },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    exclude: ['e2e/**', 'node_modules/**'],
   },
 })

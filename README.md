@@ -21,6 +21,8 @@ cd backend
 cp .env.example .env          # local settings; never commit secrets
 uv sync
 uv run alembic upgrade head
+# First front-desk admin (set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD in .env, >= 12 chars)
+uv run python -m app.db.seed
 uv run uvicorn app.main:app --reload   # http://localhost:8000/api/v1/health
 
 # Frontend (second terminal)
@@ -43,6 +45,8 @@ uv run pytest                     # everything
 # Frontend (from frontend/)
 npm run lint && npm run typecheck && npm test && npm run build
 npm run gen:api                   # regenerate src/api/schema.d.ts from docs/openapi.yaml
+npm run e2e                       # Playwright; starts API on :8100 and web on :5273, resets
+                                  # the LOCAL database (needs `docker compose up -d db`, migrated)
 ```
 
 ## Layout

@@ -91,9 +91,41 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # Placeholder: Playwright end-to-end tests start in M1 (M1-T1).
   e2e:
-    if: false
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: careconnect
+          POSTGRES_PASSWORD: careconnect
+          POSTGRES_DB: careconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U careconnect -d careconnect"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://careconnect:careconnect@localhost:5432/careconnect
     steps:
-      - run: echo "e2e starts in M1"
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --frozen
+        working-directory: backend
+      - run: uv run alembic upgrade head
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run e2e
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
