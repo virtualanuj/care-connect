@@ -1,0 +1,1242 @@
+openapi: 3.0.3
+info:
+  title: CareConnect API
+  description: >
+    Clinic appointment and patient-triage API. Implements the contract
+    described in docs/spec.md. All endpoints require staff authentication
+    (front-desk or doctor) — there is no patient-facing surface in v1.
+  version: 0.1.0
+servers:
+  - url: /api/v1
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Doctors
+  - name: Availability
+  - name: Specialties
+  - name: Patients
+  - name: Slots
+  - name: Appointments
+  - name: Triage
+  - name: Summary
+  - name: VisitNotes
+  - name: Queue
+  - name: ClinicSettings
+
+paths:
+  # ---------------------------------------------------------------- Auth
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Staff login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [access_token, token_type, role]
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string, example: bearer }
+                  role: { $ref: "#/components/schemas/Role" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      responses:
+        "200":
+          description: The authenticated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ------------------------------------------------------------- Doctors
+  /doctors:
+    get:
+      tags: [Doctors]
+      summary: List doctors
+      parameters:
+        - name: specialtyId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Doctor" }
+    post:
+      tags: [Doctors]
+      summary: Create a doctor profile
+      description: Front-desk only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorCreate" }
+      responses:
+        "201":
+          description: Doctor created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /doctors/{doctorId}:
+    parameters:
+      - $ref: "#/components/parameters/DoctorId"
+    get:
+      tags: [Doctors]
+      summary: Get a doctor
+      responses:
+        "200":
+          description: The doctor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Doctors]
+      summary: Update a doctor
+      description: >
+        Front-desk may update any doctor. A doctor may only update their
+        own profile (per spec.md §1).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorUpdate" }
+      responses:
+        "200":
+          description: Updated doctor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # --------------------------------------------------------- Availability
+  /doctors/{doctorId}/availability:
+    parameters:
+      - $ref: "#/components/parameters/DoctorId"
+    get:
+      tags: [Availability]
+      summary: List weekly availability rules for a doctor
+      responses:
+        "200":
+          description: Availability rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Availability" }
+    post:
+      tags: [Availability]
+      summary: Add a weekly availability rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AvailabilityCreate" }
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Availability" }
+
+  /doctors/{doctorId}/availability/{availabilityId}:
+    parameters:
+      - $ref: "#/components/parameters/DoctorId"
+      - name: availabilityId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Availability]
+      summary: Update a weekly availability rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AvailabilityCreate" }
+      responses:
+        "200":
+          description: Updated rule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Availability" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Availability]
+      summary: Remove a weekly availability rule
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /doctors/{doctorId}/availability-exceptions:
+    parameters:
+      - $ref: "#/components/parameters/DoctorId"
+    get:
+      tags: [Availability]
+      summary: List one-off availability exceptions
+      responses:
+        "200":
+          description: Exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AvailabilityException" }
+    post:
+      tags: [Availability]
+      summary: Add a one-off exception (holiday, extra hours)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AvailabilityExceptionCreate" }
+      responses:
+        "201":
+          description: Exception created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AvailabilityException" }
+
+  # -------------------------------------------------------- Specialties
+  /specialties:
+    get:
+      tags: [Specialties]
+      summary: List specialties
+      responses:
+        "200":
+          description: Specialties
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Specialty" }
+    post:
+      tags: [Specialties]
+      summary: Create a specialty
+      description: Front-desk only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SpecialtyCreate" }
+      responses:
+        "201":
+          description: Specialty created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Specialty" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ------------------------------------------------------------ Patients
+  /patients:
+    get:
+      tags: [Patients]
+      summary: Look up patients by phone number
+      description: >
+        Returns every patient registered under the given phone number
+        (spec.md §2 — a phone may map to multiple patients, e.g. family
+        members). Omitting `phone` returns a general paginated list.
+      parameters:
+        - name: phone
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Matching patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Patient" }
+    post:
+      tags: [Patients]
+      summary: Register a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientCreate" }
+      responses:
+        "201":
+          description: Patient registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+
+  /patients/{patientId}:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Patients]
+      summary: Get a patient
+      responses:
+        "200":
+          description: The patient
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Patients]
+      summary: Update patient demographics
+      description: >
+        Front-desk may update any patient. A doctor may only update their
+        own patients (per spec.md §1).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientUpdate" }
+      responses:
+        "200":
+          description: Updated patient
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /patients/{patientId}/medical-history:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Patients]
+      summary: List a patient's medical history entries
+      responses:
+        "200":
+          description: Medical history (free-text, append-only, per spec.md §2)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MedicalHistoryEntry" }
+    post:
+      tags: [Patients]
+      summary: Add a medical history entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicalHistoryEntryCreate" }
+      responses:
+        "201":
+          description: Entry added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MedicalHistoryEntry" }
+
+  # ---------------------------------------------------------------- Slots
+  /slots:
+    get:
+      tags: [Slots]
+      summary: Search bookable slots
+      description: >
+        Search by a specific doctor, or by specialty. A specialty search
+        returns every matching doctor's open slots as a choice for
+        front-desk (spec.md §4) rather than auto-selecting one.
+        Emergency-held-back slots (spec.md §4) are excluded unless
+        `includeEmergency=true` is passed, which additionally requires
+        `emergencyJustification`.
+      parameters:
+        - name: doctorId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: specialtyId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: includeEmergency
+          in: query
+          schema: { type: boolean, default: false }
+        - name: emergencyJustification
+          in: query
+          description: >
+            Required when includeEmergency=true. One of `triage` (AI
+            triage result was `emergency`) or `front_desk_judgment`
+            (spec.md §4).
+          schema:
+            type: string
+            enum: [triage, front_desk_judgment]
+      responses:
+        "200":
+          description: Matching slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Slot" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # ----------------------------------------------------------- Appointments
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List/query appointments
+      parameters:
+        - name: doctorId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: patientId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/AppointmentStatus" }
+      responses:
+        "200":
+          description: Matching appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Appointment" }
+    post:
+      tags: [Appointments]
+      summary: Book an appointment
+      description: >
+        Rejected on any overlap for the same doctor or same patient
+        (spec.md §4, DB-enforced). Booking into an emergency-held slot
+        requires `isEmergencySlot=true` plus a valid justification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentCreate" }
+      responses:
+        "201":
+          description: Appointment booked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          description: Slot no longer available (double-booking conflict)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /appointments/{appointmentId}:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    get:
+      tags: [Appointments]
+      summary: Get an appointment
+      responses:
+        "200":
+          description: The appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /appointments/{appointmentId}/reschedule:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Reschedule an appointment
+      description: >
+        Cancel-old + book-new in one transaction. Subject to the same
+        cancellation cutoff as a standard cancellation (spec.md §4) —
+        rejected if the original appointment starts within
+        `ClinicSettings.cancellation_cutoff_hours`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newStartTime]
+              properties:
+                newStartTime: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Rescheduled appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          description: >
+            Cutoff window closed, or new slot unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /appointments/{appointmentId}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Cancel an appointment (standard)
+      description: >
+        Rejected once inside `ClinicSettings.cancellation_cutoff_hours`
+        of the appointment start (spec.md §4). Use force-cancel to bypass.
+      responses:
+        "200":
+          description: Cancelled appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          description: Cutoff window closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /appointments/{appointmentId}/force-cancel:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Force-cancel an appointment past the cutoff
+      description: Front-desk only (spec.md §1, §4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: Force-cancelled appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /appointments/{appointmentId}/check-in:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Transition Booked → Checked-in
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          $ref: "#/components/responses/InvalidTransition"
+
+  /appointments/{appointmentId}/start-consultation:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Transition Checked-in → In-consultation
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          $ref: "#/components/responses/InvalidTransition"
+
+  /appointments/{appointmentId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Transition In-consultation → Completed
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          $ref: "#/components/responses/InvalidTransition"
+
+  /appointments/{appointmentId}/no-show:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Mark Booked or Checked-in → No-show
+      description: Always a manual action by front-desk or doctor (spec.md §3).
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "409":
+          $ref: "#/components/responses/InvalidTransition"
+
+  /appointments/{appointmentId}/follow-up:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Book a follow-up linked to this appointment
+      description: >
+        Rejected if the requested date exceeds
+        `ClinicSettings.follow_up_max_days` from this appointment
+        (spec.md §4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startTime]
+              properties:
+                startTime: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Follow-up appointment booked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+        "422":
+          description: Requested date outside the follow-up window
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # --------------------------------------------------------------- Triage
+  /appointments/{appointmentId}/triage:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    get:
+      tags: [Triage]
+      summary: Get the AI triage result for an appointment
+      responses:
+        "200":
+          description: Triage result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AITriageResult" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Triage]
+      summary: Submit reported symptoms and run AI triage
+      description: >
+        Patient-identifying fields are redacted before this payload is
+        sent to the external AI provider; identity is re-attached to the
+        result locally (spec.md §5, §7).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportedSymptoms]
+              properties:
+                reportedSymptoms: { type: string }
+      responses:
+        "201":
+          description: Triage result generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AITriageResult" }
+        "503":
+          description: AI provider unavailable — booking may proceed without triage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /appointments/{appointmentId}/triage/override:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    patch:
+      tags: [Triage]
+      summary: Override the AI triage result
+      description: >
+        Stored alongside the original AI output, which is never
+        overwritten (spec.md §2, §5).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [overriddenUrgency]
+              properties:
+                overriddenUrgency: { $ref: "#/components/schemas/Urgency" }
+                overriddenSpecialtyId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Updated triage result with override applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AITriageResult" }
+
+  # -------------------------------------------------------------- Summary
+  /appointments/{appointmentId}/summary:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    get:
+      tags: [Summary]
+      summary: Get the pre-visit summary for a doctor
+      description: >
+        Assembled from patient history, reported symptoms, and triage
+        result; cached and only regenerated when underlying data changes
+        (spec.md §5 design note, spec.md §6 user story).
+      responses:
+        "200":
+          description: Pre-visit summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PreVisitSummary" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ------------------------------------------------------------ VisitNotes
+  /appointments/{appointmentId}/visit-note:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    get:
+      tags: [VisitNotes]
+      summary: Get the visit note for an appointment
+      responses:
+        "200":
+          description: Visit note
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitNote" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [VisitNotes]
+      summary: Create or update the doctor's raw visit notes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [doctorNotes]
+              properties:
+                doctorNotes: { type: string }
+      responses:
+        "200":
+          description: Updated visit note
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitNote" }
+
+  /appointments/{appointmentId}/visit-note/draft:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [VisitNotes]
+      summary: Generate an AI draft summary from the doctor's notes
+      description: >
+        Writes `aiDraftSummary` only — never `finalSummary`, which
+        requires explicit doctor action (spec.md §5, §6).
+      responses:
+        "200":
+          description: Visit note with AI draft populated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitNote" }
+
+  /appointments/{appointmentId}/visit-note/finalize:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [VisitNotes]
+      summary: Finalize the visit summary
+      description: Doctor reviews and approves the summary that gets saved as final.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [finalSummary]
+              properties:
+                finalSummary: { type: string }
+      responses:
+        "200":
+          description: Finalized visit note
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitNote" }
+
+  # ------------------------------------------------------------------ Queue
+  /queue:
+    get:
+      tags: [Queue]
+      summary: Front-desk daily dashboard
+      description: >
+        Today's appointments grouped by status: booked, checked-in
+        in-progress, completed, no-shows, plus walk-ins (spec.md §6).
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: The day's queue
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DailyQueue" }
+
+  # ------------------------------------------------------------ Clinic Settings
+  /clinic-settings:
+    get:
+      tags: [ClinicSettings]
+      summary: Get current clinic policy settings
+      responses:
+        "200":
+          description: Clinic settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClinicSettings" }
+    patch:
+      tags: [ClinicSettings]
+      summary: Update clinic policy settings
+      description: Front-desk only (spec.md §1, §4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClinicSettingsUpdate" }
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClinicSettings" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DoctorId:
+      name: doctorId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PatientId:
+      name: patientId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated but not permitted (see spec.md §1)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UnprocessableEntity:
+      description: Business rule violation
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InvalidTransition:
+      description: Lifecycle transition not valid from the current status (spec.md §3)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: SLOT_ALREADY_BOOKED }
+        message: { type: string }
+
+    Role:
+      type: string
+      enum: [doctor, front_desk_admin]
+
+    User:
+      type: object
+      required: [id, email, role]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+
+    Specialty:
+      type: object
+      required: [id, name, defaultSlotLengthMinutes]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        defaultSlotLengthMinutes: { type: integer, minimum: 5 }
+
+    SpecialtyCreate:
+      type: object
+      required: [name, defaultSlotLengthMinutes]
+      properties:
+        name: { type: string }
+        defaultSlotLengthMinutes: { type: integer, minimum: 5 }
+
+    Doctor:
+      type: object
+      required: [id, userId, name, specialtyId, slotLengthMinutes, active]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        name: { type: string }
+        specialtyId: { type: string, format: uuid }
+        slotLengthMinutes:
+          type: integer
+          minimum: 5
+          description: >
+            Doctor-specific slot length; seeded from the specialty default
+            but independently editable (spec.md §4).
+        active: { type: boolean }
+
+    DoctorCreate:
+      type: object
+      required: [userId, name, specialtyId]
+      properties:
+        userId: { type: string, format: uuid }
+        name: { type: string }
+        specialtyId: { type: string, format: uuid }
+        slotLengthMinutes:
+          type: integer
+          minimum: 5
+          description: Defaults to the specialty's defaultSlotLengthMinutes if omitted.
+
+    DoctorUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        specialtyId: { type: string, format: uuid }
+        slotLengthMinutes: { type: integer, minimum: 5 }
+        active: { type: boolean }
+
+    DayOfWeek:
+      type: string
+      enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+
+    Availability:
+      type: object
+      required: [id, doctorId, dayOfWeek, startTime, endTime]
+      properties:
+        id: { type: string, format: uuid }
+        doctorId: { type: string, format: uuid }
+        dayOfWeek: { $ref: "#/components/schemas/DayOfWeek" }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+
+    AvailabilityCreate:
+      type: object
+      required: [dayOfWeek, startTime, endTime]
+      properties:
+        dayOfWeek: { $ref: "#/components/schemas/DayOfWeek" }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+
+    AvailabilityExceptionType:
+      type: string
+      enum: [unavailable, extra_hours]
+
+    AvailabilityException:
+      type: object
+      required: [id, doctorId, date, type]
+      properties:
+        id: { type: string, format: uuid }
+        doctorId: { type: string, format: uuid }
+        date: { type: string, format: date }
+        type: { $ref: "#/components/schemas/AvailabilityExceptionType" }
+        startTime: { type: string, format: time, nullable: true }
+        endTime: { type: string, format: time, nullable: true }
+
+    AvailabilityExceptionCreate:
+      type: object
+      required: [date, type]
+      properties:
+        date: { type: string, format: date }
+        type: { $ref: "#/components/schemas/AvailabilityExceptionType" }
+        startTime: { type: string, format: time, nullable: true }
+        endTime: { type: string, format: time, nullable: true }
+
+    Patient:
+      type: object
+      required: [id, name, phone, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        phone:
+          type: string
+          description: >
+            Identity is the (phone, name) combination — one phone number
+            may have multiple registered patients (spec.md §2).
+        dob: { type: string, format: date, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    PatientCreate:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        dob: { type: string, format: date, nullable: true }
+        email: { type: string, format: email, nullable: true }
+
+    PatientUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        dob: { type: string, format: date, nullable: true }
+        email: { type: string, format: email, nullable: true }
+
+    MedicalHistoryEntry:
+      type: object
+      required: [id, patientId, description, recordedAt, recordedBy]
+      properties:
+        id: { type: string, format: uuid }
+        patientId: { type: string, format: uuid }
+        description:
+          type: string
+          description: Free text (spec.md §2) — no structured fields.
+        recordedAt: { type: string, format: date-time }
+        recordedBy: { type: string, format: uuid }
+
+    MedicalHistoryEntryCreate:
+      type: object
+      required: [description]
+      properties:
+        description: { type: string }
+
+    Slot:
+      type: object
+      required: [doctorId, specialtyId, startTime, endTime, isEmergency]
+      properties:
+        doctorId: { type: string, format: uuid }
+        specialtyId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        isEmergency:
+          type: boolean
+          description: True if this slot is drawn from held-back emergency capacity.
+
+    AppointmentStatus:
+      type: string
+      enum:
+        - booked
+        - checked_in
+        - in_consultation
+        - completed
+        - no_show
+        - cancelled
+
+    Appointment:
+      type: object
+      required:
+        [id, doctorId, patientId, startTime, endTime, status, isEmergencySlot, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        doctorId: { type: string, format: uuid }
+        patientId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/AppointmentStatus" }
+        isEmergencySlot: { type: boolean }
+        reportedSymptoms: { type: string, nullable: true }
+        aiTriageResultId: { type: string, format: uuid, nullable: true }
+        followUpOfAppointmentId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        cancelledAt: { type: string, format: date-time, nullable: true }
+
+    AppointmentCreate:
+      type: object
+      required: [doctorId, patientId, startTime]
+      properties:
+        doctorId: { type: string, format: uuid }
+        patientId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        reportedSymptoms: { type: string, nullable: true }
+        isEmergencySlot: { type: boolean, default: false }
+        emergencyJustification:
+          type: string
+          enum: [triage, front_desk_judgment]
+          description: Required when isEmergencySlot is true (spec.md §4).
+
+    Urgency:
+      type: string
+      enum: [emergency, urgent, routine]
+
+    AITriageResult:
+      type: object
+      required:
+        [id, appointmentId, urgency, suggestedSpecialtyId, confidenceScore, disclaimer, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        appointmentId: { type: string, format: uuid }
+        urgency: { $ref: "#/components/schemas/Urgency" }
+        suggestedSpecialtyId: { type: string, format: uuid }
+        confidenceScore:
+          type: number
+          minimum: 0
+          maximum: 1
+        disclaimer:
+          type: string
+          description: Must always be shown alongside the result (spec.md §5).
+        overriddenBy: { type: string, format: uuid, nullable: true }
+        overriddenUrgency:
+          allOf: [{ $ref: "#/components/schemas/Urgency" }]
+          nullable: true
+        overriddenSpecialtyId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    PreVisitSummary:
+      type: object
+      required: [appointmentId, summary, generatedAt]
+      properties:
+        appointmentId: { type: string, format: uuid }
+        summary:
+          type: string
+          description: >
+            Assembled from patient history, reported symptoms, and the
+            triage result (spec.md §5).
+        generatedAt: { type: string, format: date-time }
+
+    VisitNote:
+      type: object
+      required: [id, appointmentId, doctorNotes, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        appointmentId: { type: string, format: uuid }
+        doctorNotes: { type: string }
+        aiDraftSummary: { type: string, nullable: true }
+        finalSummary: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DailyQueue:
+      type: object
+      required: [date, booked, walkIns, inProgress, completed, noShows]
+      properties:
+        date: { type: string, format: date }
+        booked:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+        walkIns:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+        inProgress:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+        completed:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+        noShows:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+
+    ClinicSettings:
+      type: object
+      required:
+        [cancellationCutoffHours, emergencySlotsPerDoctorPerDay, followUpMaxDays]
+      properties:
+        cancellationCutoffHours:
+          type: number
+          default: 2
+          description: Governs both cancellation and reschedule (spec.md §4).
+        emergencySlotsPerDoctorPerDay:
+          type: integer
+          default: 1
+        followUpMaxDays:
+          type: integer
+          default: 30
+
+    ClinicSettingsUpdate:
+      type: object
+      properties:
+        cancellationCutoffHours: { type: number }
+        emergencySlotsPerDoctorPerDay: { type: integer }
+        followUpMaxDays: { type: integer }
