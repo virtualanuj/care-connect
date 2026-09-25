@@ -4,6 +4,7 @@ import RequireAuth from './auth/RequireAuth'
 import RequireRole from './auth/RequireRole'
 import Layout from './components/Layout'
 import SettingsPage from './features/settings/SettingsPage'
+import AvailabilityPage from './features/availability/AvailabilityPage'
 import DoctorsPage from './features/doctors/DoctorsPage'
 import UsersPage from './features/users/UsersPage'
 import HomePage from './routes/HomePage'
@@ -18,6 +19,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="doctors" element={<DoctorsPage />} />
+          <Route path="doctors/:doctorId/availability" element={<AvailabilityPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route element={<RequireRole roles={['front_desk_admin']} />}>
             <Route path="users" element={<UsersPage />} />
