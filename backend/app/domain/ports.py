@@ -19,11 +19,13 @@ from app.domain.models import (
     Page,
     Patient,
     PatientIdentifiers,
+    PreVisitSummary,
     Role,
     Specialty,
     TriageModelOutput,
     TriageResult,
     User,
+    VisitNote,
 )
 
 
@@ -252,3 +254,19 @@ class LLMProvider(Protocol):
     def generate_text(self, task: str, text: str, identifiers: PatientIdentifiers) -> str:
         """Free-text generation (pre-visit summary, note draft) - used from M7."""
         ...
+
+
+class SummaryRepository(Protocol):
+    def get(self, appointment_id: uuid.UUID) -> PreVisitSummary | None: ...
+
+    def save(self, summary: PreVisitSummary) -> None:
+        """Insert or replace the summary of an appointment."""
+        ...
+
+
+class VisitNoteRepository(Protocol):
+    def get_by_appointment(self, appointment_id: uuid.UUID) -> VisitNote | None: ...
+
+    def add(self, note: VisitNote) -> None: ...
+
+    def update(self, note: VisitNote) -> None: ...

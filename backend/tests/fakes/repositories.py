@@ -345,3 +345,32 @@ class InMemoryTriageRepository:
 
     def update(self, result: TriageResult) -> None:
         self.items[result.id] = result
+
+
+# ---- M7 summaries and visit notes -------------------------------------------------------------
+from app.domain.models import PreVisitSummary, VisitNote  # noqa: E402
+
+
+class InMemorySummaryRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, PreVisitSummary] = {}
+
+    def get(self, appointment_id: uuid.UUID) -> PreVisitSummary | None:
+        return self.items.get(appointment_id)
+
+    def save(self, summary: PreVisitSummary) -> None:
+        self.items[summary.appointment_id] = summary
+
+
+class InMemoryVisitNoteRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, VisitNote] = {}
+
+    def get_by_appointment(self, appointment_id: uuid.UUID) -> VisitNote | None:
+        return next((n for n in self.items.values() if n.appointment_id == appointment_id), None)
+
+    def add(self, note: VisitNote) -> None:
+        self.items[note.id] = note
+
+    def update(self, note: VisitNote) -> None:
+        self.items[note.id] = note

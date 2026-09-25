@@ -218,3 +218,34 @@ class TriageResultRow(Base):
     )
     override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PreVisitSummaryRow(Base):
+    __tablename__ = "pre_visit_summaries"
+
+    appointment_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("appointments.id"), primary_key=True
+    )
+    summary: Mapped[str] = mapped_column(Text)
+    disclaimer: Mapped[str] = mapped_column(Text)
+    inputs_hash: Mapped[str] = mapped_column(Text)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class VisitNoteRow(Base):
+    __tablename__ = "visit_notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    appointment_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("appointments.id"), unique=True
+    )
+    doctor_notes: Mapped[str] = mapped_column(Text)
+    ai_draft_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_draft_disclaimer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    final_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    finalized_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id"), nullable=True
+    )
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

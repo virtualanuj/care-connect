@@ -16,6 +16,10 @@ from app.adapters.postgres.patient_repository import PostgresPatientRepository
 from app.adapters.postgres.specialty_repository import PostgresSpecialtyRepository
 from app.adapters.postgres.triage_repository import PostgresTriageRepository
 from app.adapters.postgres.user_repository import PostgresUserRepository
+from app.adapters.postgres.visit_note_repository import (
+    PostgresSummaryRepository,
+    PostgresVisitNoteRepository,
+)
 from app.db.session import get_session
 from app.domain.errors import Forbidden, Unauthenticated
 from app.domain.models import Role, User
@@ -29,8 +33,10 @@ from app.services.doctor_service import DoctorService
 from app.services.patient_service import PatientService
 from app.services.queue_service import QueueService
 from app.services.slot_service import SlotService
+from app.services.summary_service import SummaryService
 from app.services.triage_service import TriageService
 from app.services.user_service import UserService
+from app.services.visit_note_service import VisitNoteService
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -178,6 +184,35 @@ def get_triage_service(
         PostgresClinicSettingsRepository(session),
         request.app.state.llm,
         audit,
+        clock,
+    )
+
+
+def get_summary_service(
+    request: Request, session: Session = SESSION, clock: Clock = Depends(get_clock)
+) -> SummaryService:
+    return SummaryService(
+        PostgresAppointmentRepository(session),
+        PostgresPatientRepository(session),
+        PostgresMedicalHistoryRepository(session),
+        PostgresTriageRepository(session),
+        PostgresSummaryRepository(session),
+        PostgresDoctorRepository(session),
+        request.app.state.llm,
+        clock,
+    )
+
+
+def get_visit_note_service(
+    session: Session = SESSION,
+    clock: Clock = Depends(get_clock),
+    summaries: SummaryService = Depends(get_summary_service),
+) -> VisitNoteService:
+    return VisitNoteService(
+        PostgresAppointmentRepository(session),
+        PostgresDoctorRepository(session),
+        PostgresVisitNoteRepository(session),
+        summaries,
         clock,
     )
 

@@ -7,7 +7,7 @@ const RESET_SQL = [
   'from app.db.session import get_engine',
   'with get_engine().begin() as connection:',
   '    connection.execute(text(',
-  "        'TRUNCATE audit_log, medical_history_entries, availability_exceptions, availability, '",
+  "        'TRUNCATE audit_log, visit_notes, pre_visit_summaries, medical_history_entries, availability_exceptions, availability, '",
   "        'doctors, patients, specialties, users CASCADE'",
   '    ))',
   '    # CASCADE also emptied clinic_settings (it references specialties): restore the default row.',

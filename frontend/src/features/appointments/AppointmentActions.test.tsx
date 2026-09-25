@@ -84,7 +84,9 @@ function api(user: typeof ADMIN, initial: string, extra: Handlers = {}, doctorId
 }
 
 const open = (handlers: Handlers) => renderApp(handlers, { path: '/appointments/a1', token: 't' })
-const buttonNames = () => screen.queryAllByRole('button').map((b) => b.textContent)
+// Only the lifecycle actions: the page also hosts the summary and visit-note panels.
+const buttonNames = () =>
+  Array.from(document.querySelectorAll('.actions button')).map((b) => b.textContent)
 
 describe('Action buttons by status', () => {
   it.each([

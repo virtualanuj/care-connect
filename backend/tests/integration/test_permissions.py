@@ -151,6 +151,18 @@ TRIAGE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] =
 ]
 MATRIX.extend(TRIAGE_MATRIX)
 
+NOTES_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
+    ("GET", f"/appointments/{ID}/summary", None, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/summary", None, NOT_FOUND),
+    ("GET", f"/appointments/{ID}/visit-note", None, NOT_FOUND),
+    ("PUT", f"/appointments/{ID}/visit-note", {"doctorNotes": "n"}, NOT_FOUND),
+    ("POST", f"/appointments/{ID}/visit-note/draft", None, NOT_FOUND),
+    # Only the appointment's doctor finalizes; an unknown appointment is 404 for everyone
+    # authenticated, and the real front-desk 403 is asserted in test_visit_notes_api.py.
+    ("POST", f"/appointments/{ID}/visit-note/finalize", {"finalSummary": "s"}, NOT_FOUND),
+]
+MATRIX.extend(NOTES_MATRIX)
+
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)
 def test_route_permissions(

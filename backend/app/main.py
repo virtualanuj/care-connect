@@ -22,6 +22,7 @@ from app.api.routers import (
     specialties,
     triage,
     users,
+    visit_notes,
 )
 from app.config import Settings, get_settings
 from app.domain.ports import Clock, LLMProvider
@@ -70,6 +71,7 @@ def create_app(
         appointments.router,
         queue.router,
         triage.router,
+        visit_notes.router,
     )
     for router in routers:
         app.include_router(router, prefix=API_PREFIX)

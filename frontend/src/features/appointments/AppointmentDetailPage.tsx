@@ -1,8 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
 
 import { useDoctors } from '../../api/referenceHooks'
+import { useAuth } from '../../auth/useAuth'
 import { formatDateTime } from '../../lib/time'
 import { useClinicSettings } from '../settings/settingsApi'
+import PreVisitSummaryPanel from '../visitnotes/PreVisitSummaryPanel'
+import VisitNoteEditor from '../visitnotes/VisitNoteEditor'
 import AppointmentActions from './AppointmentActions'
 import { STATUS_LABELS, useAppointment, usePatientNames } from './appointmentsApi'
 
@@ -11,6 +14,7 @@ export default function AppointmentDetailPage() {
   const appointment = useAppointment(appointmentId)
   const doctors = useDoctors()
   const settings = useClinicSettings()
+  const { user } = useAuth()
   const timeZone = settings.data?.clinicTimezone ?? 'UTC'
   const names = usePatientNames(appointment.data ? [appointment.data.patientId] : [])
 
@@ -44,6 +48,17 @@ export default function AppointmentDetailPage() {
         <dd>{a.reportedSymptoms ?? '—'}</dd>
       </dl>
       <AppointmentActions appointment={a} />
+      {a.status !== 'cancelled' && (
+        <PreVisitSummaryPanel appointmentId={a.id} timeZone={timeZone} />
+      )}
+      {a.status !== 'cancelled' && a.status !== 'no_show' && (
+        <VisitNoteEditor
+          appointmentId={a.id}
+          status={a.status}
+          canFinalize={user?.role === 'doctor' && doctor?.userId === user.id}
+          timeZone={timeZone}
+        />
+      )}
     </section>
   )
 }

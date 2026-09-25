@@ -284,3 +284,31 @@ class TriageResult:
     def effective_urgency(self) -> Urgency:
         """The staff override if there is one (it always wins), otherwise the original."""
         return self.overridden_urgency or self.urgency
+
+
+@dataclass
+class PreVisitSummary:
+    appointment_id: uuid.UUID
+    summary: str
+    disclaimer: str
+    inputs_hash: str
+    generated_at: datetime
+
+
+@dataclass
+class VisitNote:
+    id: uuid.UUID
+    appointment_id: uuid.UUID
+    doctor_notes: str
+    created_at: datetime
+    updated_at: datetime
+    ai_draft_summary: str | None = None
+    ai_draft_disclaimer: str | None = None
+    final_summary: str | None = None
+    finalized_by: uuid.UUID | None = None
+    finalized_at: datetime | None = None
+
+    @property
+    def locked(self) -> bool:
+        """Once finalized a note can no longer change."""
+        return self.finalized_at is not None
