@@ -63,7 +63,7 @@ process.
       conflict (double-booking, invalid lifecycle transition, duplicate
       patient, availability conflict, locked note), `422` = policy or
       business-rule violation (cancellation cutoff, follow-up window,
-      emergency justification), `503` = AI provider unavailable.
+      emergency justification), `500` = unexpected error (generic body), `503` = AI provider unavailable.
 - [ ] Each domain error has exactly one `code` value, defined once in the
       `ErrorCode` enum in `docs/openapi.yaml` and used consistently
       everywhere it's raised (e.g. `SLOT_ALREADY_BOOKED`,

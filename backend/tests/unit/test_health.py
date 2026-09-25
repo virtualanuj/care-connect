@@ -10,3 +10,12 @@ def test_health_returns_ok_without_authentication() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_app_returns_error_envelope_for_unknown_routes() -> None:
+    client = TestClient(create_app())
+
+    response = client.get("/nope")
+
+    assert response.status_code == 404
+    assert response.json() == {"code": "NOT_FOUND", "message": "Resource not found"}

@@ -14,7 +14,8 @@ info:
     `ClinicSettings.clinicTimezone`. Status mapping — 400 malformed or
     schema-invalid request, 401 unauthenticated, 403 permission denied,
     404 not found, 409 state conflict, 422 policy/business-rule violation,
-    429 rate limited, 503 AI provider unavailable. Every error body is
+    429 rate limited, 500 unexpected server error (`INTERNAL_ERROR`, no
+    details), 503 AI provider unavailable. Every error body is
     `Error` with a `code` from `ErrorCode`.
   version: 0.2.0
 servers:
@@ -1372,6 +1373,7 @@ components:
         - VISIT_NOTE_LOCKED
         - NO_NOTES_TO_DRAFT
         - AI_SERVICE_UNAVAILABLE
+        - INTERNAL_ERROR
 
     Error:
       type: object
