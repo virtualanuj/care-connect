@@ -27,6 +27,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   APPOINTMENT_NOT_COMPLETED: 'A follow-up can only be booked from a completed visit.',
   PATIENT_ALREADY_EXISTS: 'A patient with this name and phone number is already registered.',
   USER_ALREADY_EXISTS: 'A user with this email already exists.',
+  DOCTOR_ALREADY_EXISTS: 'That user already has a doctor profile.',
+  SPECIALTY_ALREADY_EXISTS: 'A specialty with this name already exists.',
   AVAILABILITY_OVERLAP: 'That availability overlaps another rule for the same day.',
   AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS:
     'That change would affect existing appointments. Cancel or reschedule them first.',

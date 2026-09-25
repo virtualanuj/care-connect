@@ -227,7 +227,7 @@ export interface paths {
         head?: never;
         /**
          * Update a user (role, name, active)
-         * @description Front-desk only. Deactivation takes effect immediately (active is checked on every request). Written to the audit log.
+         * @description Front-desk only. Deactivation takes effect immediately (active is checked on every request). A user cannot deactivate or change the role of their own account (400). Written to the audit log.
          */
         patch: {
             parameters: {
@@ -424,7 +424,7 @@ export interface paths {
         head?: never;
         /**
          * Update a doctor
-         * @description Front-desk may update any doctor. A doctor may only update their own profile (spec.md §1). Setting `active=false` is rejected with `AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS` while non-cancelled future appointments exist. A `slotLengthMinutes` change affects future slot generation only.
+         * @description Front-desk may update any doctor. A doctor may only update their own profile (spec.md §1) and may not change `active` (front-desk only, 403). Setting `active=false` is rejected with `AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS` while non-cancelled future appointments exist. A `slotLengthMinutes` change affects future slot generation only.
          */
         patch: {
             parameters: {
@@ -2274,7 +2274,7 @@ export interface components {
          * @description The catalog of error codes. Each code has exactly one meaning and is used consistently everywhere it is raised.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "FORBIDDEN" | "NOT_FOUND" | "RATE_LIMITED" | "SLOT_ALREADY_BOOKED" | "PATIENT_ALREADY_BOOKED" | "INVALID_SLOT" | "EMERGENCY_JUSTIFICATION_REQUIRED" | "EMERGENCY_NOT_AUTHORIZED" | "CANCELLATION_WINDOW_CLOSED" | "INVALID_TRANSITION" | "FOLLOW_UP_WINDOW_EXCEEDED" | "APPOINTMENT_NOT_COMPLETED" | "PATIENT_ALREADY_EXISTS" | "USER_ALREADY_EXISTS" | "AVAILABILITY_OVERLAP" | "AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS" | "VISIT_NOTE_NOT_WRITABLE" | "VISIT_NOTE_LOCKED" | "NO_NOTES_TO_DRAFT" | "AI_SERVICE_UNAVAILABLE" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "FORBIDDEN" | "NOT_FOUND" | "RATE_LIMITED" | "SLOT_ALREADY_BOOKED" | "PATIENT_ALREADY_BOOKED" | "INVALID_SLOT" | "EMERGENCY_JUSTIFICATION_REQUIRED" | "EMERGENCY_NOT_AUTHORIZED" | "CANCELLATION_WINDOW_CLOSED" | "INVALID_TRANSITION" | "FOLLOW_UP_WINDOW_EXCEEDED" | "APPOINTMENT_NOT_COMPLETED" | "PATIENT_ALREADY_EXISTS" | "USER_ALREADY_EXISTS" | "DOCTOR_ALREADY_EXISTS" | "SPECIALTY_ALREADY_EXISTS" | "AVAILABILITY_OVERLAP" | "AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS" | "VISIT_NOTE_NOT_WRITABLE" | "VISIT_NOTE_LOCKED" | "NO_NOTES_TO_DRAFT" | "AI_SERVICE_UNAVAILABLE" | "INTERNAL_ERROR";
         Error: {
             code: components["schemas"]["ErrorCode"];
             message: string;
@@ -2284,6 +2284,17 @@ export interface components {
          * @example 09:30
          */
         ClockTime: string;
+        /**
+         * @description A ClockTime, or null.
+         * @example 09:30
+         */
+        NullableClockTime: string | null;
+        /** @enum {string|null} */
+        NullableEmergencyJustification: "triage" | "front_desk_judgment" | null;
+        /** @enum {string|null} */
+        NullableCancellationType: "standard" | "force" | "rescheduled" | null;
+        /** @enum {string|null} */
+        NullableUrgency: "emergency" | "urgent" | "routine" | null;
         /** @enum {string} */
         Role: "doctor" | "front_desk_admin";
         User: {
@@ -2388,22 +2399,22 @@ export interface components {
             /** Format: date */
             date: string;
             type: components["schemas"]["AvailabilityExceptionType"];
-            startTime?: components["schemas"]["ClockTime"] | null;
-            endTime?: components["schemas"]["ClockTime"] | null;
+            startTime?: components["schemas"]["NullableClockTime"];
+            endTime?: components["schemas"]["NullableClockTime"];
         };
         AvailabilityExceptionCreate: {
             /** Format: date */
             date: string;
             type: components["schemas"]["AvailabilityExceptionType"];
-            startTime?: components["schemas"]["ClockTime"] | null;
-            endTime?: components["schemas"]["ClockTime"] | null;
+            startTime?: components["schemas"]["NullableClockTime"];
+            endTime?: components["schemas"]["NullableClockTime"];
         };
         AvailabilityExceptionUpdate: {
             /** Format: date */
             date?: string;
             type?: components["schemas"]["AvailabilityExceptionType"];
-            startTime?: components["schemas"]["ClockTime"] | null;
-            endTime?: components["schemas"]["ClockTime"] | null;
+            startTime?: components["schemas"]["NullableClockTime"];
+            endTime?: components["schemas"]["NullableClockTime"];
         };
         Patient: {
             /** Format: uuid */
@@ -2501,7 +2512,7 @@ export interface components {
             status: components["schemas"]["AppointmentStatus"];
             source: components["schemas"]["AppointmentSource"];
             isEmergencySlot: boolean;
-            emergencyJustification?: components["schemas"]["EmergencyJustification"] | null;
+            emergencyJustification?: components["schemas"]["NullableEmergencyJustification"];
             emergencyReason?: string | null;
             /** Format: uuid */
             emergencyAuthorizedBy?: string | null;
@@ -2520,7 +2531,7 @@ export interface components {
             cancelledAt?: string | null;
             /** Format: uuid */
             cancelledBy?: string | null;
-            cancellationType?: components["schemas"]["CancellationType"] | null;
+            cancellationType?: components["schemas"]["NullableCancellationType"];
             cancelReason?: string | null;
             /** Format: uuid */
             rescheduledToId?: string | null;
@@ -2541,7 +2552,7 @@ export interface components {
              */
             triageResultId?: string | null;
             /** @description Required when the chosen slot is held-back emergency capacity (spec.md §4); the server verifies it. */
-            emergencyJustification?: components["schemas"]["EmergencyJustification"] | null;
+            emergencyJustification?: components["schemas"]["NullableEmergencyJustification"];
             /** @description Required when emergencyJustification is front_desk_judgment. */
             emergencyReason?: string | null;
         };
@@ -2578,7 +2589,7 @@ export interface components {
             overriddenBy?: string | null;
             /** Format: date-time */
             overriddenAt?: string | null;
-            overriddenUrgency?: components["schemas"]["Urgency"] | null;
+            overriddenUrgency?: components["schemas"]["NullableUrgency"];
             /** Format: uuid */
             overriddenSpecialtyId?: string | null;
             overrideReason?: string | null;
@@ -2718,7 +2729,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description State conflict — see the operation description for the specific `ErrorCode` (e.g. SLOT_ALREADY_BOOKED, PATIENT_ALREADY_BOOKED, PATIENT_ALREADY_EXISTS, AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS, AVAILABILITY_OVERLAP, USER_ALREADY_EXISTS, APPOINTMENT_NOT_COMPLETED, VISIT_NOTE_NOT_WRITABLE, VISIT_NOTE_LOCKED) */
+        /** @description State conflict — see the operation description for the specific `ErrorCode` (e.g. SLOT_ALREADY_BOOKED, PATIENT_ALREADY_BOOKED, PATIENT_ALREADY_EXISTS, DOCTOR_ALREADY_EXISTS, SPECIALTY_ALREADY_EXISTS, AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS, AVAILABILITY_OVERLAP, USER_ALREADY_EXISTS, APPOINTMENT_NOT_COMPLETED, VISIT_NOTE_NOT_WRITABLE, VISIT_NOTE_LOCKED) */
         Conflict: {
             headers: {
                 [name: string]: unknown;
