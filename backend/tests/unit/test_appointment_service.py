@@ -13,6 +13,7 @@ from app.domain.errors import (
     NotFound,
     PatientAlreadyBooked,
     SlotAlreadyBooked,
+    ValidationFailed,
 )
 from app.domain.models import (
     Appointment,
@@ -26,6 +27,9 @@ from app.domain.models import (
     Patient,
     Role,
     Specialty,
+    TriageResult,
+    TriageSource,
+    Urgency,
     User,
 )
 from app.services.appointment_service import AppointmentService
@@ -40,6 +44,7 @@ from tests.fakes.repositories import (
     InMemoryDoctorRepository,
     InMemoryPatientRepository,
     InMemorySpecialtyRepository,
+    InMemoryTriageRepository,
 )
 
 SUNDAY_NOON = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
@@ -90,6 +95,7 @@ class Setup:
             self.clock,
         )
         self.audit_repo = InMemoryAuditRepository()
+        self.triage = InMemoryTriageRepository()
         self.service = AppointmentService(
             self.appointments,
             self.doctors,
@@ -98,6 +104,7 @@ class Setup:
             self.settings,
             self.clock,
             AuditService(self.audit_repo, self.clock),
+            self.triage,
         )
         self.specialty = Specialty(uuid.uuid4(), "General", 20)
         self.specialties.add(self.specialty)
@@ -271,12 +278,113 @@ def test_a_doctor_cannot_authorize_emergency_capacity_by_judgment(s: Setup) -> N
         )
 
 
-def test_a_triage_justification_is_not_accepted_until_triage_exists(s: Setup) -> None:
+def add_triage(
+    s: Setup,
+    urgency: Urgency,
+    patient: Patient | None = None,
+    override: Urgency | None = None,
+) -> TriageResult:
+    result = TriageResult(
+        id=uuid.uuid4(),
+        patient_id=(patient or s.asha).id,
+        reported_symptoms="symptoms",
+        urgency=urgency,
+        suggested_specialty_id=s.specialty.id,
+        confidence_score=0.9,
+        source=TriageSource.MODEL,
+        disclaimer="d",
+        created_at=SUNDAY_NOON,
+        overridden_urgency=override,
+    )
+    s.triage.add(result)
+    return result
+
+
+def book_by_triage(s: Setup, triage: TriageResult | None, **kwargs):  # type: ignore[no-untyped-def]
+    return s.book(
+        start_time=at(9, 40),
+        emergency_justification=EmergencyJustification.TRIAGE,
+        triage_result_id=triage.id if triage else None,
+        **kwargs,
+    )
+
+
+def test_an_emergency_triage_result_authorizes_the_held_back_slot(s: Setup) -> None:
+    triage = add_triage(s, Urgency.EMERGENCY)
+
+    appointment = book_by_triage(s, triage)
+
+    assert appointment.is_emergency_slot is True
+    assert appointment.emergency_justification == EmergencyJustification.TRIAGE
+    assert appointment.triage_result_id == triage.id
+    assert appointment.emergency_authorized_by == s.admin.id
+    (entry,) = s.audit_repo.entries
+    assert entry.action == AuditAction.EMERGENCY_AUTHORIZATION
+    assert entry.target_id == appointment.id
+
+
+@pytest.mark.parametrize(
+    ("urgency", "override", "allowed"),
+    [
+        (Urgency.ROUTINE, None, False),
+        (Urgency.URGENT, None, False),
+        (Urgency.EMERGENCY, None, True),
+        (Urgency.EMERGENCY, Urgency.ROUTINE, False),  # the override always wins: a downgrade blocks
+        (Urgency.ROUTINE, Urgency.EMERGENCY, True),  # ...and an upgrade allows
+        (Urgency.EMERGENCY, Urgency.EMERGENCY, True),
+    ],
+)
+def test_authorization_follows_the_effective_urgency_including_overrides(
+    s: Setup, urgency: Urgency, override: Urgency | None, allowed: bool
+) -> None:
+    triage = add_triage(s, urgency, override=override)
+
+    if allowed:
+        assert book_by_triage(s, triage).is_emergency_slot is True
+    else:
+        with pytest.raises(EmergencyNotAuthorized):
+            book_by_triage(s, triage)
+        assert s.appointments.items == {}
+
+
+def test_a_triage_result_of_another_patient_never_authorizes_the_booking(s: Setup) -> None:
+    others = add_triage(s, Urgency.EMERGENCY, patient=s.kiran)
+
+    with pytest.raises(EmergencyNotAuthorized):
+        book_by_triage(s, others)  # booking Asha with Kiran's emergency triage
+
+
+def test_a_triage_justification_needs_a_result_that_exists(s: Setup) -> None:
+    with pytest.raises(EmergencyNotAuthorized):
+        book_by_triage(s, None)
     with pytest.raises(EmergencyNotAuthorized):
         s.book(
             start_time=at(9, 40),
             emergency_justification=EmergencyJustification.TRIAGE,
             triage_result_id=uuid.uuid4(),
+        )
+
+
+def test_a_doctor_may_book_their_own_slot_on_the_strength_of_triage(s: Setup) -> None:
+    triage = add_triage(s, Urgency.EMERGENCY)
+
+    appointment = book_by_triage(s, triage, actor=s.doc_user, doctor=s.doctor)
+
+    assert appointment.emergency_authorized_by == s.doc_user.id
+
+
+def test_a_triage_reference_on_a_regular_booking_is_validated_and_stored(s: Setup) -> None:
+    triage = add_triage(s, Urgency.ROUTINE)
+
+    stored = s.book(start_time=at(9, 0), triage_result_id=triage.id)
+
+    assert stored.triage_result_id == triage.id and stored.is_emergency_slot is False
+    with pytest.raises(ValidationFailed):
+        s.book(start_time=at(9, 20), triage_result_id=uuid.uuid4())
+    with pytest.raises(ValidationFailed):
+        s.book(
+            start_time=at(9, 20),
+            triage_result_id=add_triage(s, Urgency.ROUTINE, patient=s.kiran).id,
         )
 
 

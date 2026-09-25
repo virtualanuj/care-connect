@@ -29,6 +29,8 @@ from app.domain.models import (
     Page,
     Role,
     Slot,
+    TriageResult,
+    Urgency,
     User,
 )
 from app.domain.ports import (
@@ -37,6 +39,7 @@ from app.domain.ports import (
     Clock,
     DoctorRepository,
     PatientRepository,
+    TriageRepository,
 )
 from app.services.audit_service import AuditService
 from app.services.slot_service import SlotService
@@ -52,6 +55,7 @@ class AppointmentService:
         settings: ClinicSettingsRepository,
         clock: Clock,
         audit: AuditService,
+        triage: TriageRepository,
         new_id: Callable[[], uuid.UUID] = uuid.uuid4,
     ) -> None:
         self._appointments = appointments
@@ -61,6 +65,7 @@ class AppointmentService:
         self._settings = settings
         self._clock = clock
         self._audit = audit
+        self._triage = triage
         self._new_id = new_id
 
     # ---- booking ----------------------------------------------------------------------------
@@ -89,8 +94,16 @@ class AppointmentService:
             raise Forbidden("Doctors can only book appointments with themselves")
 
         slot = self._open_slot(doctor, start_time)
+        by_triage = emergency_justification == EmergencyJustification.TRIAGE
+        triage: TriageResult | None = None
+        if triage_result_id is not None:
+            found = self._triage.get(triage_result_id)
+            if found is not None and found.patient_id == patient_id:
+                triage = found
+            elif not (slot.is_emergency and by_triage):
+                raise ValidationFailed("That triage result does not exist for this patient")
         emergency = (
-            self._authorize_emergency(actor, emergency_justification, emergency_reason)
+            self._authorize_emergency(actor, emergency_justification, emergency_reason, triage)
             if slot.is_emergency
             else None  # a justification sent for a regular slot is ignored
         )
@@ -101,7 +114,7 @@ class AppointmentService:
             slot,
             source=source,
             reported_symptoms=reported_symptoms,
-            triage_result_id=triage_result_id,
+            triage_result_id=triage.id if triage else None,
             emergency=emergency,
             authorized_by=actor.id,
         )
@@ -120,11 +133,13 @@ class AppointmentService:
         actor: User,
         justification: EmergencyJustification | None,
         reason: str | None,
+        triage: TriageResult | None,
     ) -> tuple[EmergencyJustification, str | None]:
         """Decide whether the actor may draw on held-back emergency capacity.
 
-        Front-desk judgment needs a stated reason and a front-desk actor. Authorization by an AI
-        triage result arrives with the triage milestone (M6).
+        Either front-desk judgment (front-desk only, with a stated reason) or a triage result of
+        this patient whose *effective* urgency is emergency (a staff override wins over the AI).
+        The server verifies the triage condition; the client's claim is never trusted.
         """
         if justification is None:
             raise EmergencyJustificationRequired(
@@ -138,7 +153,9 @@ class AppointmentService:
                     "Front-desk judgment needs a reason for using emergency capacity"
                 )
             return justification, reason.strip()
-        raise EmergencyNotAuthorized("The triage result does not authorize an emergency slot")
+        if triage is None or triage.effective_urgency != Urgency.EMERGENCY:
+            raise EmergencyNotAuthorized("The triage result does not authorize an emergency slot")
+        return justification, None
 
     def _open_slot(self, doctor: Doctor, start_time: datetime) -> Slot:
         """The currently open slot starting at `start_time`, or the reason there is none."""

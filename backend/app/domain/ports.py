@@ -1,7 +1,7 @@
 """Ports: interfaces the service layer depends on (implemented by adapters)."""
 
 import uuid
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Protocol
 
@@ -18,8 +18,11 @@ from app.domain.models import (
     MedicalHistoryEntry,
     Page,
     Patient,
+    PatientIdentifiers,
     Role,
     Specialty,
+    TriageModelOutput,
+    TriageResult,
     User,
 )
 
@@ -194,6 +197,10 @@ class AppointmentRepository(AppointmentQuery, Protocol):
 
     def get(self, appointment_id: uuid.UUID) -> Appointment | None: ...
 
+    def triage_used_by(self, triage_id: uuid.UUID, doctor_id: uuid.UUID) -> bool:
+        """True if one of the doctor's appointments references this triage result."""
+        ...
+
     def update(self, appointment: Appointment) -> None:
         """Persist changes to an existing appointment (status, cancellation fields, links)."""
         ...
@@ -209,4 +216,39 @@ class AppointmentRepository(AppointmentQuery, Protocol):
         page_size: int,
     ) -> Page[Appointment]:
         """Filter on start time in [starts_from, starts_before). Ordered by start time."""
+        ...
+
+
+class TriageRepository(Protocol):
+    def add(self, result: TriageResult) -> None: ...
+
+    def get(self, triage_id: uuid.UUID) -> TriageResult | None: ...
+
+    def list_for_patient(self, patient_id: uuid.UUID) -> list[TriageResult]:
+        """Newest first; every run is kept for audit."""
+        ...
+
+    def update(self, result: TriageResult) -> None: ...
+
+
+class LLMProvider(Protocol):
+    """The only door to an external AI service (implemented by the Gemini adapter).
+
+    Implementations must scrub `identifiers` from every outbound payload themselves, validate the
+    response, and raise `AiServiceUnavailable` on any failure or invalid answer.
+    """
+
+    model_version: str
+    prompt_version: str
+
+    def classify_triage(
+        self,
+        symptoms: str,
+        history: Sequence[str],
+        specialties: Sequence[str],
+        identifiers: PatientIdentifiers,
+    ) -> TriageModelOutput: ...
+
+    def generate_text(self, task: str, text: str, identifiers: PatientIdentifiers) -> str:
+        """Free-text generation (pre-visit summary, note draft) - used from M7."""
         ...

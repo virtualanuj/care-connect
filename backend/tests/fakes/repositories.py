@@ -276,6 +276,12 @@ class InMemoryAppointmentRepository:
     def get(self, appointment_id: uuid.UUID) -> Appointment | None:
         return self.items.get(appointment_id)
 
+    def triage_used_by(self, triage_id: uuid.UUID, doctor_id: uuid.UUID) -> bool:
+        return any(
+            a.triage_result_id == triage_id and a.doctor_id == doctor_id
+            for a in self.items.values()
+        )
+
     def update(self, appointment: Appointment) -> None:
         self.items[appointment.id] = appointment
 
@@ -317,3 +323,25 @@ class InMemoryAppointmentRepository:
             for a in self._holding()
             if a.doctor_id == doctor_id and a.start_time < end and start < a.end_time
         ]
+
+
+# ---- M6 triage --------------------------------------------------------------------------------
+from app.domain.models import TriageResult  # noqa: E402
+
+
+class InMemoryTriageRepository:
+    def __init__(self) -> None:
+        self.items: dict[uuid.UUID, TriageResult] = {}
+
+    def add(self, result: TriageResult) -> None:
+        self.items[result.id] = result
+
+    def get(self, triage_id: uuid.UUID) -> TriageResult | None:
+        return self.items.get(triage_id)
+
+    def list_for_patient(self, patient_id: uuid.UUID) -> list[TriageResult]:
+        found = [r for r in self.items.values() if r.patient_id == patient_id]
+        return sorted(found, key=lambda r: r.created_at, reverse=True)
+
+    def update(self, result: TriageResult) -> None:
+        self.items[result.id] = result
