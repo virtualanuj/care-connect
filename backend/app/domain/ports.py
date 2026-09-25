@@ -189,6 +189,10 @@ class AppointmentRepository(AppointmentQuery, Protocol):
 
     def get(self, appointment_id: uuid.UUID) -> Appointment | None: ...
 
+    def update(self, appointment: Appointment) -> None:
+        """Persist changes to an existing appointment (status, cancellation fields, links)."""
+        ...
+
     def list(
         self,
         doctor_id: uuid.UUID | None,

@@ -96,6 +96,18 @@ class AppointmentCreate(CamelModel):
     emergency_reason: str | None = None
 
 
+class RescheduleRequest(CamelModel):
+    new_start_time: AwareDatetime
+
+
+class ForceCancelRequest(CamelModel):
+    reason: str = Field(min_length=1)
+
+
+class FollowUpRequest(CamelModel):
+    start_time: AwareDatetime
+
+
 class AppointmentPage(CamelModel):
     items: list[AppointmentOut]
     page: int
@@ -116,5 +128,8 @@ __all__ = [
     "AppointmentCreate",
     "AppointmentOut",
     "AppointmentPage",
+    "FollowUpRequest",
+    "ForceCancelRequest",
+    "RescheduleRequest",
     "SlotOut",
 ]

@@ -28,10 +28,12 @@ from app.domain.models import (
     User,
 )
 from app.services.appointment_service import AppointmentService
+from app.services.audit_service import AuditService
 from app.services.slot_service import SlotService
 from tests.fakes.fixed_clock import FixedClock
 from tests.fakes.repositories import (
     InMemoryAppointmentRepository,
+    InMemoryAuditRepository,
     InMemoryAvailabilityRepository,
     InMemoryClinicSettingsRepository,
     InMemoryDoctorRepository,
@@ -86,8 +88,15 @@ class Setup:
             self.settings,
             self.clock,
         )
+        self.audit_repo = InMemoryAuditRepository()
         self.service = AppointmentService(
-            self.appointments, self.doctors, self.patients, slots, self.settings, self.clock
+            self.appointments,
+            self.doctors,
+            self.patients,
+            slots,
+            self.settings,
+            self.clock,
+            AuditService(self.audit_repo, self.clock),
         )
         self.specialty = Specialty(uuid.uuid4(), "General", 20)
         self.specialties.add(self.specialty)

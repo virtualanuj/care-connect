@@ -103,6 +103,15 @@ class PostgresAppointmentRepository:
         row = self._session.get(AppointmentRow, appointment_id)
         return _to_domain(row) if row else None
 
+    def update(self, appointment: Appointment) -> None:
+        row = self._session.get(AppointmentRow, appointment.id)
+        if row is None:
+            return
+        for name in _FIELDS:
+            if name != "id":
+                setattr(row, name, getattr(appointment, name))
+        self._session.flush()
+
     def list(
         self,
         doctor_id: uuid.UUID | None,

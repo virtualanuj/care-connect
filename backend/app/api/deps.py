@@ -129,6 +129,7 @@ def get_appointment_service(
     session: Session = Depends(get_session),
     clock: Clock = Depends(get_clock),
     slots: SlotService = Depends(get_slot_service),
+    audit: AuditService = Depends(get_audit_service),
 ) -> AppointmentService:
     return AppointmentService(
         PostgresAppointmentRepository(session),
@@ -137,6 +138,7 @@ def get_appointment_service(
         slots,
         PostgresClinicSettingsRepository(session),
         clock,
+        audit,
     )
 
 

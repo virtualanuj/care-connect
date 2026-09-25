@@ -273,6 +273,9 @@ class InMemoryAppointmentRepository:
     def get(self, appointment_id: uuid.UUID) -> Appointment | None:
         return self.items.get(appointment_id)
 
+    def update(self, appointment: Appointment) -> None:
+        self.items[appointment.id] = appointment
+
     def list(
         self,
         doctor_id: uuid.UUID | None,
