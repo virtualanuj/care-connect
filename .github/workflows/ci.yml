@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      # Unit tests must not touch the network or a database (enforced by tests/no_network.py).
+      - run: uv run pytest tests/unit
+
+  backend-integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: careconnect
+          POSTGRES_PASSWORD: careconnect
+          POSTGRES_DB: careconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U careconnect -d careconnect"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://careconnect:careconnect@localhost:5432/careconnect
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run alembic upgrade head
+      - run: uv run alembic heads | test "$(wc -l)" -eq 1
+      - run: uv run pytest tests/integration
+
+  contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run pytest tests/contract
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Generated API types must match docs/openapi.yaml.
+      - run: npm run gen:api && git diff --exit-code src/api/schema.d.ts
+      - run: npm test
+      - run: npm run build
+
+  # Placeholder: Playwright end-to-end tests start in M1 (M1-T1).
+  e2e:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "e2e starts in M1"

@@ -10,9 +10,12 @@ from openapi_core import OpenAPI
 from openapi_core.testing import MockRequest, MockResponse
 
 from app.main import create_app
+from tests.no_network import block_network
 
 SPEC_PATH = Path(__file__).resolve().parents[3] / "docs" / "openapi.yaml"
 HOST = "http://testserver"
+
+__all__ = ["block_network"]
 
 ContractCheck = Callable[[httpx.Response], None]
 
