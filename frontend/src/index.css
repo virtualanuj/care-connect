@@ -32,3 +32,16 @@ body {
 main {
   padding: 1.5rem;
 }
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  max-width: 24rem;
+  padding: 0.75rem 1rem;
+  background: #b3261e;
+  color: #fff;
+  border-radius: 0.5rem;
+}

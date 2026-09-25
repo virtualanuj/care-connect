@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { ApiError } from './client'
-import { AppProviders, shouldRetry } from './providers'
+import { AppProviders } from './providers'
+import { shouldRetry } from './retry'
 
 describe('shouldRetry', () => {
   it('never retries client errors (4xx)', () => {
