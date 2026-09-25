@@ -26,7 +26,8 @@ for traceability) and are incorporated directly into the sections below.
 |---|---|---|
 | Create / deactivate users, reset passwords | Yes | No |
 | Create doctors / specialties | Yes | No |
-| Edit doctor profile | Yes | Own only |
+| Edit doctor profile | Yes | Own only (not `active`) |
+| Activate / deactivate a doctor | Yes | No |
 | Set weekly availability / exceptions | Yes | Own only |
 | Register / edit patient records | Yes | Yes (any patient) |
 | Read patients and medical history | Yes | Yes (any patient) |

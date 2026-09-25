@@ -250,7 +250,8 @@ paths:
       summary: Update a doctor
       description: >
         Front-desk may update any doctor. A doctor may only update their
-        own profile (spec.md §1). Setting `active=false` is rejected with
+        own profile (spec.md §1) and may not change `active` (front-desk
+        only, 403). Setting `active=false` is rejected with
         `AVAILABILITY_CONFLICTS_WITH_APPOINTMENTS` while non-cancelled
         future appointments exist. A `slotLengthMinutes` change affects
         future slot generation only.
