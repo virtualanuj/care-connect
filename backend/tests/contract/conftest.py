@@ -10,13 +10,13 @@ from openapi_core import OpenAPI
 from openapi_core.testing import MockRequest, MockResponse
 
 from app.main import create_app
-from tests.api_harness import harness
+from tests.api_harness import booking_harness, harness
 from tests.db_fixtures import clean_tables, migrated_database
 
 SPEC_PATH = Path(__file__).resolve().parents[3] / "docs" / "openapi.yaml"
 HOST = "http://testserver"
 
-__all__ = ["clean_tables", "harness", "migrated_database"]
+__all__ = ["booking_harness", "clean_tables", "harness", "migrated_database"]
 
 ContractCheck = Callable[[httpx.Response], None]
 

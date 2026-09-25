@@ -102,6 +102,19 @@ REFERENCE_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]
 ]
 MATRIX.extend(REFERENCE_MATRIX)
 
+BOOKING_MATRIX: list[tuple[str, str, dict[str, object] | None, dict[str, int]]] = [
+    ("GET", f"/slots?date=2026-03-02&doctorId={ID}", None, NOT_FOUND),
+    ("GET", "/appointments", None, AUTHENTICATED_OK),
+    (
+        "POST",
+        "/appointments",
+        {"doctorId": ID, "patientId": ID, "startTime": "2026-03-02T09:00:00Z"},
+        NOT_FOUND,
+    ),
+    ("GET", f"/appointments/{ID}", None, NOT_FOUND),
+]
+MATRIX.extend(BOOKING_MATRIX)
+
 
 @pytest.mark.parametrize(("method", "path", "body", "expected"), MATRIX)
 def test_route_permissions(
@@ -126,7 +139,7 @@ def test_route_permissions(
 
 
 def test_every_registered_route_is_in_the_permission_matrix() -> None:
-    documented = {(method, path) for method, path, _, _ in MATRIX}
+    documented = {(method, path.split("?")[0]) for method, path, _, _ in MATRIX}
     # FastAPI's generated schema lists every registered operation.
     registered = {
         (method.upper(), re.sub(r"\{[a-z_]+\}", ID, path.removeprefix(API_PREFIX)))

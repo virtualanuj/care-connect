@@ -651,13 +651,16 @@ paths:
                 items: { $ref: "#/components/schemas/Slot" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   # ----------------------------------------------------------- Appointments
   /appointments:
     get:
       tags: [Appointments]
       summary: List/query appointments
-      description: A doctor sees only their own appointments.
+      description: >
+        A doctor sees only their own appointments (403 if they filter by
+        another doctor's id).
       parameters:
         - name: doctorId
           in: query
@@ -681,6 +684,7 @@ paths:
               schema: { $ref: "#/components/schemas/AppointmentPage" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
     post:
       tags: [Appointments]
       summary: Book an appointment

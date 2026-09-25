@@ -8,6 +8,7 @@ from app.adapters.jwt_codec import JwtTokenCodec
 from app.adapters.rate_limiter import InMemoryRateLimiter
 from app.api.errors import register_error_handlers
 from app.api.routers import (
+    appointments,
     audit,
     auth,
     availability,
@@ -15,6 +16,7 @@ from app.api.routers import (
     doctors,
     health,
     patients,
+    slots,
     specialties,
     users,
 )
@@ -56,6 +58,8 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         doctors.router,
         availability.router,
         patients.router,
+        slots.router,
+        appointments.router,
     )
     for router in routers:
         app.include_router(router, prefix=API_PREFIX)

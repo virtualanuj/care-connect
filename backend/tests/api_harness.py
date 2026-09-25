@@ -2,8 +2,10 @@
 
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.adapters.argon2_hasher import Argon2PasswordHasher
@@ -11,11 +13,15 @@ from app.adapters.postgres.user_repository import PostgresUserRepository
 from app.db.session import get_session_factory
 from app.domain.models import Role, User
 from app.main import create_app
+from tests.fakes.fixed_clock import FixedClock
 
 PASSWORD = "correct horse battery"
 
 
 class ApiHarness:
+    app: FastAPI
+    clock: FixedClock
+
     def __init__(self, client: TestClient) -> None:
         self.client = client
         self._hasher = Argon2PasswordHasher()
@@ -52,3 +58,18 @@ class ApiHarness:
 @pytest.fixture
 def harness() -> Iterator[ApiHarness]:
     yield ApiHarness(TestClient(create_app(), raise_server_exceptions=False))
+
+
+# A Sunday noon; the following Monday (2026-03-02) is the day booking tests work with.
+BOOKING_NOW = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def booking_harness() -> Iterator[ApiHarness]:
+    """A harness whose server clock is fixed, so slot availability is deterministic."""
+    clock = FixedClock(BOOKING_NOW)
+    app = create_app(clock=clock)
+    harness = ApiHarness(TestClient(app, raise_server_exceptions=False))
+    harness.app = app
+    harness.clock = clock
+    yield harness

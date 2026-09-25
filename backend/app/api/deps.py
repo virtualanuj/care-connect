@@ -6,7 +6,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.adapters.no_appointments import NoAppointments
+from app.adapters.postgres.appointment_repository import PostgresAppointmentRepository
 from app.adapters.postgres.audit_repository import PostgresAuditRepository
 from app.adapters.postgres.availability_repository import PostgresAvailabilityRepository
 from app.adapters.postgres.clinic_settings_repository import PostgresClinicSettingsRepository
@@ -19,12 +19,14 @@ from app.db.session import get_session
 from app.domain.errors import Forbidden, Unauthenticated
 from app.domain.models import Role, User
 from app.domain.ports import Clock
+from app.services.appointment_service import AppointmentService
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
 from app.services.availability_service import AvailabilityService
 from app.services.clinic_settings_service import ClinicSettingsService
 from app.services.doctor_service import DoctorService
 from app.services.patient_service import PatientService
+from app.services.slot_service import SlotService
 from app.services.user_service import UserService
 
 _bearer = HTTPBearer(auto_error=False)
@@ -80,7 +82,7 @@ def get_doctor_service(
         PostgresUserRepository(session),
         PostgresSpecialtyRepository(session),
         PostgresDoctorRepository(session),
-        NoAppointments(),  # replaced by the Postgres appointment query in M3
+        PostgresAppointmentRepository(session),
         clock,
     )
 
@@ -91,7 +93,7 @@ def get_availability_service(
     return AvailabilityService(
         PostgresDoctorRepository(session),
         PostgresAvailabilityRepository(session),
-        NoAppointments(),  # replaced by the Postgres appointment query in M3
+        PostgresAppointmentRepository(session),
         PostgresClinicSettingsRepository(session),
         clock,
     )
@@ -107,6 +109,34 @@ def get_patient_service(
         PostgresMedicalHistoryRepository(session),
         clock,
         default_region=request.app.state.default_phone_region,
+    )
+
+
+def get_slot_service(
+    session: Session = Depends(get_session), clock: Clock = Depends(get_clock)
+) -> SlotService:
+    return SlotService(
+        PostgresSpecialtyRepository(session),
+        PostgresDoctorRepository(session),
+        PostgresAvailabilityRepository(session),
+        PostgresAppointmentRepository(session),
+        PostgresClinicSettingsRepository(session),
+        clock,
+    )
+
+
+def get_appointment_service(
+    session: Session = Depends(get_session),
+    clock: Clock = Depends(get_clock),
+    slots: SlotService = Depends(get_slot_service),
+) -> AppointmentService:
+    return AppointmentService(
+        PostgresAppointmentRepository(session),
+        PostgresDoctorRepository(session),
+        PostgresPatientRepository(session),
+        slots,
+        PostgresClinicSettingsRepository(session),
+        clock,
     )
 
 
