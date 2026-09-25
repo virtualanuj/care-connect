@@ -21,4 +21,16 @@ def clean_tables() -> Iterator[None]:
     """Every test leaves the application tables empty."""
     yield
     with get_engine().begin() as connection:
-        connection.execute(text("TRUNCATE audit_log, users CASCADE"))
+        connection.execute(
+            text(
+                "TRUNCATE audit_log, medical_history_entries, availability_exceptions, "
+                "availability, doctors, patients, specialties, users CASCADE"
+            )
+        )
+        connection.execute(
+            text(
+                "UPDATE clinic_settings SET cancellation_cutoff_hours = 2, "
+                "emergency_slots_per_doctor_per_day = 1, follow_up_max_days = 30, "
+                "clinic_timezone = 'UTC', default_triage_specialty_id = NULL"
+            )
+        )
